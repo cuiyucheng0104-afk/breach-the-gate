@@ -1,14 +1,16 @@
 // 逐套预设卡组比两个电脑：所有预设两两对阵（含同套对打；A 用 i 套、B 用 j 套，反过来是另一格），每格各先手一半，只有电脑不同。
 // 用法：node tools/lab/v2/deck_matrix.mjs <电脑A> <电脑B> [每格局数=40，取 4 的倍数] [线程数] [种子起点=950001] [结果JSON]
+//   环境变量 DECKS=卡组.json（[{name, f, cards}]）换掉预设，比如各阵营找出来的最强卡组互打
 //   输出：A 用每套卡组时的胜率（对 B 的所有卡组）、每格 A 的胜率；JSON {a,b,decks,perDeck:[{deck,win,ci,games}],cells:[[win…]]}
 import { isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { DECKS, newGame, apply, aiTurn } from '../../../chess.js';
+import { DECKS as PRESETS, newGame, apply, aiTurn } from '../../../chess.js';
+import { readFileSync } from 'node:fs';
 import { makeAI, lcg, farm } from '../play.mjs';
 
-const ND = DECKS.length;
+const DECKS = process.env.DECKS ? JSON.parse(readFileSync(process.env.DECKS, 'utf8')) : PRESETS, ND = DECKS.length;
 if (!isMainThread) {
   const A = makeAI(workerData.a), B = makeAI(workerData.b), per = workerData.per;
   parentPort.on('message', ({ from, n }) => {
