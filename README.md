@@ -32,6 +32,8 @@ python3 tools/serve.py 8770
 
 然后打开 `http://localhost:8770/board.html`。
 
+想换一个对战盘场景看看，在地址后面加 `?arena=<名字>`，例如 `http://localhost:8770/board.html?arena=harvest`。七套场景的名字见 [arenas/README.md](arenas/README.md)；不加这个参数，游戏和原来一样。
+
 规则自检：
 
 ```bash
@@ -49,6 +51,7 @@ node tools/chess_check.mjs
 | `campaign.js` | 闯关的关卡数据和存档 |
 | `tutorial.js` | 新手教学：一局照脚本走的对局 |
 | `board3d.js` | 场景和特效（three.js，全部用代码画） |
+| `arenas/` | 试玩用的七套对战盘场景，一套一个文件夹，地址带 `?arena=<名字>` 时用（见 [arenas/README.md](arenas/README.md)） |
 | `board-pfx.js`、`ui-pfx.js` | 像素特效：什么场合放哪个特效的对照表，棋盘上和界面上的播放器（特效库在 `vendor/pixelfx`，MIT） |
 | `chess-ui.js`、`style.css`、`motion.css` | 界面和动效 |
 | `audio.js`、`sound.js` | 声音 |
