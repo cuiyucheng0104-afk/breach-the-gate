@@ -55,6 +55,7 @@ t3 = re.sub(r'<button id="aibtn"[^>]*>.*?</button>', '<button id="aibtn" hidden>
 if t3 == t2: sys.exit('TapTap 包要去掉大模型对手，但 index.html 里找不到 AI 设置按钮')
 t2 = t3
 p.write_text(t2, encoding='utf-8')
+(game / 'taproom.js').write_text("// TapTap 版先不带联机（见 tools/build_h5.py），联网资质弄清楚再打开\nexport const available = () => false;\nexport const match = async () => { throw new Error('暂不提供联机。'); };\n", encoding='utf-8')
 (game / 'llm.js').write_text("// TapTap 版没有大模型对手（见 tools/build_h5.py）\nexport const last = { ms: 0, why: '', reply: '' };\nexport const cfg = () => ({});\nexport const save = () => {};\nexport const enabled = () => false;\nexport const ping = async () => ({ ok: false, msg: '' });\nexport const llmTurn = async () => [];\n", encoding='utf-8')
 # 版本号：入口页引用的脚本和样式、脚本之间互相引用的地址都带上 ?v=版本。浏览器会把文件缓存十分钟（GitHub Pages 定的），
 # 不带版本的话刚发布完会出现“新页面配旧脚本”——按钮在、点了没反应。带上之后新页面一定取新脚本；vendor 里的库不常变，不动
