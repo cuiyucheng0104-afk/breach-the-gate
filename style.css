@@ -210,6 +210,7 @@ body.chess header { position:absolute; z-index:6; top:var(--s3); left:max(var(--
 #home::before { left:calc(var(--col) + 64px); bottom:var(--tray); background:conic-gradient(var(--ink) 25%, transparent 0) 0 0/4px 4px; }
 .screen .title { color:var(--paper); font:800 var(--f24); letter-spacing:.2em; } .title + .lead { margin-top:var(--s2); }
 #picked b { display:block; margin-bottom:var(--s2); color:var(--fl); font:800 var(--f48); letter-spacing:.1em; white-space:nowrap; } #picked b.long { font:800 var(--f24); line-height:48px; } #picked em { color:var(--dim); font:var(--f12); font-style:normal; } #picked p { max-width:480px; margin:var(--s1) 0 var(--s3); min-height:48px; }
+#homehint .rating { color:var(--dim); font:var(--f12); white-space:nowrap; }   /* 积分：只是一行小字，不抢开始按钮 */
 .startbar { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s4); row-gap:var(--s2); margin-top:var(--s3); }   /* 放不下就折到下一行，不许把东西挤出屏幕 */
 #lineup { position:absolute; z-index:1; left:max(var(--s5), var(--sl)); right:max(var(--s5), var(--sr)); bottom:var(--tray); height:152px; pointer-events:none; }
 .band { position:relative; flex:none; height:var(--tray); padding:var(--s5) max(var(--s5), var(--sr)) 0 max(var(--s5), var(--sl)); display:flex; align-items:flex-start; gap:var(--s3); background:var(--night-1); box-shadow:inset 0 2px 0 var(--night-3); }

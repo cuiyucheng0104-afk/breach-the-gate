@@ -6,12 +6,13 @@ import { board, GFX } from './board3d.js';
 import { areaOf, stageOpts, battleMusic, progress, BADGES, badgeName } from './campaign.js';
 import { campaignUI } from './campaign-ui.js';
 import { cupUI } from './cup-ui.js';
-import { TIERS, opts as cupOpts } from './cup.js';
+import { TIERS, opts as cupOpts, rng } from './cup.js';
 import { LESSON, keepOrder, stepOk, foeTurn } from './tutorial.js';
 import { createRoom, joinRoom } from './room.js';
 import { llmTurn, enabled as llmOn, cfg as llmCfg, save as llmSave, ping as llmPing, last as llmLast } from './llm.js';
 import { sfx, music, unlock, toggleMute, isMuted, eventSound } from './sound.js';
 import { uiFx, ready as fxReady, UI as FXUI } from './ui-pfx.js';
+import * as score from './score.js'; // 每日挑战、对电脑的积分
 import * as sound from './sound.js'; // sound.pause / sound.resume：切后台时用（本文件里 pause 这个名字已经是“等一拍”）
 progress.load(); const owned = () => progress.data.owned; // 闯关里赢到手的首领牌
 
@@ -19,7 +20,7 @@ const $ = id => document.getElementById(id), wait = s => new Promise(r => setTim
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
 let ME = 0, FOE = 1, WHO = ['你', '电脑'], RIVAL = '电脑', net = null, ai = false; // ai：这一局的对手是大模型（llm.js），只在自由对战里 // 联机时 ME 可能是 1（后手），RIVAL 是对面的称呼；net 是房间连接（见 room.js）
 const seat = (me, rival) => { ME = me; FOE = 1 - me; RIVAL = rival; WHO = me ? [rival, '你'] : ['你', rival]; };
-let S = null, busy = true, sel = -1, mine = null, theirs = null, chain = false; // chain：正在连着自动走好几步，期间不接受别的操作
+let S = null, busy = true, sel = -1, mine = null, theirs = null, chain = false, daily = null, scored = false; // daily：正在打的每日挑战（score.today()）；scored：这一局的积分已经记过 // chain：正在连着自动走好几步，期间不接受别的操作
 // 新手教学（脚本在 tutorial.js）：lesson.i 是走到第几步。教学里每一刻只放行那一步要的操作：别的牌没有可放的格子，别的按钮按不动
 let lesson = null; const step = () => lesson && S && S.winner === null ? LESSON.steps[lesson.i] : null, line = () => S.turn !== ME ? LESSON.foeSay[S.n / 2 - 1] || '' : step()?.say || '';
 const targets = (s, i) => { const all = legal(s, i), st = step(); return !st || s.turn !== ME ? all : st.do === 'play' && s.hand[ME][i] === st.card ? all.filter(t => t === st.t) : []; };
@@ -68,9 +69,10 @@ const copy = async (text, b) => { let ok = true; try { await navigator.clipboard
 // ---------- 开始界面 ----------
 let mode = 'free'; // 开始界面的三种玩法：自由对战、闯关（campaign-ui.js 画的地图）、锦标赛（cup-ui.js）
 function home() {
+  daily = null; // 回到开始界面就不在每日挑战里了（载入失败退回来也一样）
   $('result').hidden = $('builder').hidden = true; $('home').hidden = false; lesson = null; document.body.classList.remove('lesson');
   const list = allDecks(); chosen = Math.min(chosen, list.length - 1);
-  $('home').classList.toggle('camp', mode !== 'free'); $('home').classList.toggle('cupmode', mode === 'cup'); $('roombtn').hidden = mode !== 'free'; aiLabel(); music('home'); // 锦标赛和闯关一样整屏盖住城堡
+  $('home').classList.toggle('camp', mode !== 'free'); $('home').classList.toggle('cupmode', mode === 'cup'); $('roombtn').hidden = $('dailybtn').hidden = mode !== 'free'; $('dailybtn').textContent = score.dailyDone() ? '今日挑战 ✓' : '今日挑战'; aiLabel(); music('home'); // 锦标赛和闯关一样整屏盖住城堡
   $('modes').replaceChildren(...[['free', '自由对战'], ['camp', '闯关'], ['cup', '锦标赛']].map(([m, t]) => { const b = el('button', 'tab n' + (m === mode ? ' on' : ''), t); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', m === mode); b.onclick = () => { mode = m; home(); }; return b; }));
   if (mode === 'camp') { cups.hide(); return campUI.show(); } campUI.hide(); if (mode === 'cup') return cups.show(); cups.hide();
   $('play').textContent = taught() ? '开始对局' : '新手教学'; $('play').disabled = false; // 第一次来：金色主按钮是两分钟的教学，不想学可以点旁边的“跳过教学”
@@ -86,6 +88,7 @@ function home() {
   $('homehint').replaceChildren(
     ...(d.preset ? [] : [op('删除', e => { const b = e.currentTarget; if (b.dataset.sure) { customs.splice(at, 1); store(customs); return home(); } b.dataset.sure = 1; b.textContent = '再点确认'; setTimeout(() => { delete b.dataset.sure; b.textContent = '删除'; }, 2000); }, 'danger')])); // 危险操作两秒内点两下才生效，不弹浏览器的确认框
   $('homehint').append(Object.assign(op('复制代码', e => copy(deckCode(d.cards), e.currentTarget)), { title: '复制这副卡组的代码，发给别人；对方在「新卡组」里粘贴' }), taught() ? op('教学', teach) : op('跳过教学', () => { taught(true); home(); }));
+  { const r = score.rating(); $('homehint').append(Object.assign(el('span', 'rating', `积分 ${r.r} · ${score.title(r.r)}`), { title: `对内置电脑 ${r.n} 局赢 ${r.w} 局。自由对战每局按难度涨跌，中途放弃算输` })); }
   // 其余的卡组只是一面旗：每个阵营一组，自组的另成一组
   const flag = (x, i) => { const b = el('button', 'flag ' + deckFaction(x.cards) + (i === chosen ? ' on' : ''), x.name); b.setAttribute('aria-pressed', i === chosen); b.title = i === chosen ? '再点一次进入编辑' : x.plan || ''; b.onclick = () => { if (i === chosen) return x.preset && customs.length >= SLOTS ? 0 : edit(); chosen = i; home(); }; return b; };
   const grp = (cls, name, items) => { const g = el('div', 'grp ' + cls, `<em>${name}</em>`); g.append(...items); return g; };
@@ -114,6 +117,7 @@ $('diffsel').onchange = e => { diff = e.target.value; try { localStorage.setItem
 const loadMaster = () => masterP ??= fetch('assets/ai/net-g5.json').then(r => r.json()).then(o => { MASTER = mixAI(fromJSON(o)); TIERS.max = { ...MASTER, beam: 3 }; }).catch(e => { console.warn('大师电脑没载入，用困难代替', e); masterP = null; });
 loadMaster();
 const freeAI = () => diff === 'master' ? MASTER || STRONG : DIFFS[diff][1] || STRONG;
+$('dailybtn').onclick = () => { if (!taught()) return teach(); daily = score.today(); start(daily.mine, daily.foe); }; // 今天所有人同一局：同一对卡组、同一个牌序，对面是大师电脑
 $('play').onclick = () => { if (!taught()) return teach(); if (diff === 'ai' && !llmOn()) return aiOpen('先填好接口地址和模型名，才能和 AI 对战。', true); const d = allDecks()[chosen], v = $('foesel').value, pool = DECKS.filter(x => v === 'any' || x.f === v), foe = pool[Math.floor(Math.random() * pool.length)]; start(d, { name: `${FACTIONS[foe.f].name}·${foe.name}`, cards: foe.cards }); };
 
 // ---------- AI 对手 ----------
@@ -301,7 +305,7 @@ async function endTurn() {
   let early = nx && nx.winner === null ? llmTurn(nx, x => { if (g === game) log(x); }) : null; // AI：对方回合开头的局面现在就确定了，请求马上发出，趁下面这些演出等回复
   await act({ type: 'end' });                       // 结束回合：电脑的兵先各走一步
   if (net) return foeLoop(g);                       // 联机：等对方一步步走
-  while (g === game && S.winner === null && S.turn === FOE) { const list = lesson ? foeTurn(S) : ai ? await (early || llmTurn(S, x => { if (g === game) log(x); })) : aiTurn(S, camp?.cup ? cupOpts(camp.cup.foeP) : camp ? undefined : freeAI()); early = null;
+  while (g === game && S.winner === null && S.turn === FOE) { const list = lesson ? foeTurn(S) : ai ? await (early || llmTurn(S, x => { if (g === game) log(x); })) : aiTurn(S, camp?.cup ? cupOpts(camp.cup.foeP) : camp ? undefined : daily ? MASTER || STRONG : freeAI()); early = null;
     if (ai && list.say && g === game) log(`${RIVAL}：「${list.say}」`); // 大模型每回合说一句
     if (ai && list.by) { aiTally[list.by]++; aiTally.why = list.why || aiTally.why; aiWarn = list.by === 'fallback' ? `AI 这回合没能出招（${list.why}），是内置电脑代打的。检查一下「AI 设置」里的接口。` : ''; } // 战报只留四条、手机上还收着，代打的事放到提示行里，下回合 AI 正常出招才消失 /* 自由对战按选的难度；锦标赛按选手的档次；闯关照旧用普通电脑（关卡血量是按它校准的） */ await pause(T.t4);   // 对方“想一下”
     for (const a of list) { if (g !== game || S.winner !== null) break; await act(a); if (a.type !== 'end') await pause(T.t3); } } // 两步之间留一口气
@@ -497,13 +501,13 @@ addEventListener('blur', () => board.speed(1));
 async function curtain(fn) { // 过场：两扇城门合上 → 门后换界面（载入也在这时做，至少关满半秒）→ 城门打开。界面之间不再一帧硬切
   gateEl.className = 'shut'; await nap(T.t3 + .05); try { await Promise.all([fn(), nap(T.t4)]); } finally { gateEl.className = ''; } await nap(T.t2);
 }
-const leave = () => { if (camp?.cup && S && S.winner === null && !camp.cup.counted) { camp.cup.counted = true; cups.result(camp.cup, false, S, ME); } /* 锦标赛里中途放弃：这一局算输 */ return curtain(() => { game++; busy = true; if (net) { net.close(); net = null; } seat(0, '电脑'); clearTimeout(flagT); flagEl.className = revealEl.className = ''; pileEl.replaceChildren(); board.clear(); for (const p of [0, 1]) board.setBase(p, BASE_HP); home(); }).then(() => campUI.arrive()); }; // 回开始界面：这一局没演完的步骤作废。闯关里刚打赢的那一步，等城门开了才在地图上演
+const leave = () => { if (camp?.cup && S && S.winner === null && !camp.cup.counted) { camp.cup.counted = true; cups.result(camp.cup, false, S, ME); } /* 锦标赛里中途放弃：这一局算输 */ if (S && S.winner === null) { if (rated()) score.rate(false, diff); if (daily && !scored) score.recordDaily(daily.date, dailyRes(false)); } /* 中途放弃：积分和每日挑战都算输（不然可以先看牌再退出重来） */ scored = true; daily = null; return curtain(() => { game++; busy = true; if (net) { net.close(); net = null; } seat(0, '电脑'); clearTimeout(flagT); flagEl.className = revealEl.className = ''; pileEl.replaceChildren(); board.clear(); for (const p of [0, 1]) board.setBase(p, BASE_HP); home(); }).then(() => campUI.arrive()); }; // 回开始界面：这一局没演完的步骤作废。闯关里刚打赢的那一步，等城门开了才在地图上演
 async function start(d, foe, stage = null, link = null) { // stage：闯关里的这一关（带城堡血量、开局摆的东西）；自由对战是 null；link：联机房间（room.js），有的话座位、牌序都听它的
-  const g = ++game; mine = d; theirs = foe; busy = true; camp = stage; net = link; ai = !stage && !link && diff === 'ai' && llmOn(); aiTally = { llm: 0, fallback: 0, why: '' }; aiWarn = ''; seat(link ? link.me : 0, link ? '对手' : ai ? 'AI' : stage?.cup ? stage.cup.rival : stage ? '电脑' : DIFFS[diff][0] + '电脑');
+  const g = ++game; mine = d; theirs = foe; busy = true; camp = stage; net = link; ai = !stage && !link && !daily && diff === 'ai' && llmOn(); scored = false; aiTally = { llm: 0, fallback: 0, why: '' }; aiWarn = ''; seat(link ? link.me : 0, link ? '对手' : ai ? 'AI' : stage?.cup ? stage.cup.rival : stage ? '电脑' : daily ? '大师电脑' : DIFFS[diff][0] + '电脑');
   const bar = gateEl.querySelector('.bricks'), need = [...new Set([...mine.cards, ...theirs.cards, ...(stage?.setup || []).map(x => x.card), ...Object.keys(CARDS).filter(k => CARDS[k].token)])]; let n = 0;
   try { await curtain(async () => { $('home').hidden = $('result').hidden = true; feed.length = 0; log(`你用「${mine.name}」，${RIVAL}用「${theirs.name}」。`); tell(''); bricks(bar, 0);
-    await Promise.all([...need.map(t => board.preload([t]).then(() => bricks(bar, ++n / need.length))), !link && !ai && (stage?.cup || !stage && diff === 'master') ? loadMaster() : null]); if (g !== game) return; // 一种角色一种角色地载，城门上的砖跟着亮
-    board.clear(); board.theme?.(stage?.area || deckFaction(theirs.cards)); lesson = stage?.lesson ? { i: 0 } : null; document.body.classList.toggle('lesson', !!lesson); S = newGame(link ? link.decks : [mine.cards, theirs.cards], link ? link.rnd : lesson ? keepOrder : Math.random, stage ? { ...stageOpts(stage), ordered: !!lesson } : {}); /* 教学里牌按写好的顺序发；别的对局抽牌是随机的 */ for (const [t, u] of S.board.entries()) if (u) board.add({ ...u, tile: t }); sel = -1; V = { hand: [], left: 0, max: 0 }; handEl.replaceChildren(); revealEl.className = ''; syncBoard(); }); } // 场景趁城门关着换装（按场地，自由对战按对手的阵营）：开门时不会先露出上一套再跳变
+    await Promise.all([...need.map(t => board.preload([t]).then(() => bricks(bar, ++n / need.length))), !link && !ai && (stage?.cup || !stage && (daily || diff === 'master')) ? loadMaster() : null]); if (g !== game) return; // 一种角色一种角色地载，城门上的砖跟着亮
+    board.clear(); board.theme?.(stage?.area || deckFaction(theirs.cards)); lesson = stage?.lesson ? { i: 0 } : null; document.body.classList.toggle('lesson', !!lesson); S = newGame(link ? link.decks : [mine.cards, theirs.cards], link ? link.rnd : lesson ? keepOrder : daily ? rng(daily.seed) : Math.random, stage ? { ...stageOpts(stage), ordered: !!lesson } : {}); /* 教学里牌按写好的顺序发；别的对局抽牌是随机的 */ for (const [t, u] of S.board.entries()) if (u) board.add({ ...u, tile: t }); sel = -1; V = { hand: [], left: 0, max: 0 }; handEl.replaceChildren(); revealEl.className = ''; syncBoard(); }); } // 场景趁城门关着换装（按场地，自由对战按对手的阵营）：开门时不会先露出上一套再跳变
   catch (e) { console.error(e); if (g === game) { game++; home(); const t = '没载入成功，检查网络后再试。'; if (mode === 'camp') campUI.say(t); else $('homehint').append(el('span', '', t)); } return; } // 图没载下来（手机上网络说断就断）：回开始界面说一声，不把人晾在空棋盘上
   finally { bricks(bar, 0); }
   if (g !== game) return; music(stage?.music || 'battle_' + (1 + Math.floor(Math.random() * 3))); if (stage?.boss) sfx('boss_enter'); board.intro(); busy = false; sync(); // 首领战放它自己的曲子                                   // 城门打开：镜头推进来，四张起手牌从牌库堆发到手里
@@ -531,11 +535,31 @@ function finish() { // 结算：底色淡入、胜负盖章、统计随后；按
       if (res.card) rw.append(mdCard(res.card)); // 首领牌自己就是奖励，不再配一句说明
       $('again').textContent = '回地图'; after = leave; $('tohome').hidden = true; }
     else { $('again').textContent = '重打'; after = () => fight(camp.area); $('tohome').textContent = '回地图'; } }
+  else if (daily) { // 每日挑战：成绩按今天第一次算，可以重打；结算里能存一张成绩图、复制一段成绩
+    const d = daily, rec = score.recordDaily(d.date, dailyRes(won)); scored = true;
+    $('summary').textContent += rec.tries === 1 ? `\n今日挑战 ${d.date}：这是今天的成绩。` : `\n今天第 ${rec.tries} 次。成绩按第一次算：${rec.first.won ? '赢' : '输'}，第 ${rec.first.turns} 回合。`;
+    const sh = el('button', 'link', '存成绩图'); sh.onclick = () => shareCard(rec, d); const cp = el('button', 'link', '复制成绩'); cp.onclick = e => copy(score.shareText(rec, d), e.currentTarget);
+    rw.append(sh, cp); $('again').textContent = '再挑战一次'; }
+  else if (rated()) { const x = score.rate(won, diff); scored = true; if (x) $('summary').textContent += `\n积分 ${x.from} → ${x.to}（${x.to >= x.from ? '+' : ''}${x.to - x.from}）· ${score.title(x.to)}`; }
   r.hidden = false; restart(r, 'in'); for (const b of bs) b.disabled = true;
   const W = r.clientWidth, H = r.clientHeight, card = rw.querySelector('.kcard'); // 像素特效：赢了撒彩纸、接连放六发焰火，输了下雨；奖励牌后面转一圈光。都垫在结算的字后面，结算一关就跟着收
   if (won) { uiFx(FXUI.confetti, W / 2, H, { into: r }); for (let i = 0; i < 6; i++) setTimeout(() => { const f = FXUI.win[i % FXUI.win.length]; if (!r.hidden) uiFx(f, W * (.12 + (i * 37 % 10) * .076), f[0].endsWith('rocket') ? H : H * (.22 + (i % 3) * .1), { into: r, seed: i + 1 }); }, 250 + i * 450); }
   else uiFx(FXUI.lose, 0, 0, { into: r, cover: true });
   if (card) fxReady(FXUI.reward).then(() => { const slab = r.querySelector('.slab'), a = card.getBoundingClientRect(), b = slab.getBoundingClientRect(); if (!r.hidden && a.width) uiFx(FXUI.reward, a.left - b.left + a.width / 2, a.top - b.top + a.height / 2, { into: slab, under: true }); }); nap(T.read + T.t2).then(() => { for (const b of bs) b.disabled = false; if (!r.hidden) $('again').focus(); });
+}
+const dailyRes = won => ({ won, turns: Math.ceil(S.n / 2), hp: Math.max(0, S.base[ME]), cap: S.cap[ME], foeHp: Math.max(0, S.base[FOE]), foeCap: S.cap[FOE] });
+const rated = () => !camp && !net && !ai && !daily && !scored; // 这一局算不算积分：只算自由对战打内置电脑，一局只记一次
+function shareCard(rec, d) { // 每日挑战的成绩图：画一张 720×400 的卡片，能分享就调系统分享，不能就直接下载
+  const c = el('canvas'), W = c.width = 720, H = c.height = 400, x = c.getContext('2d'), f = rec.first, font = getComputedStyle(document.body).fontFamily;
+  x.fillStyle = '#0c1020'; x.fillRect(0, 0, W, H); x.strokeStyle = '#4a5c88'; x.lineWidth = 4; x.strokeRect(12, 12, W - 24, H - 24);
+  const t = (s, y, px, col = '#ece4d0', w = 700) => { x.font = `${w} ${px}px ${font}`; x.fillStyle = col; x.textAlign = 'center'; x.fillText(s, W / 2, y); };
+  t('攻破城门 · 每日挑战', 70, 30, '#8e98b8'); t(rec.date, 110, 24, '#8e98b8', 400);
+  t(f.won ? '攻破城门' : '城门失守', 200, 72, f.won ? '#ffc070' : '#a8d0ff', 800);
+  t(`「${d.mine.name}」对「${d.foe.name}」· 大师电脑`, 260, 24, '#ece4d0', 400);
+  t(`第 ${f.turns} 回合　我方城门 ${f.hp}/${f.cap}　对面 ${f.foeHp}/${f.foeCap}`, 305, 26);
+  c.toBlob(async b => { const file = new File([b], `攻破城门-${rec.date}.png`, { type: 'image/png' });
+    try { if (navigator.canShare?.({ files: [file] })) return await navigator.share({ files: [file], text: score.shareText(rec, d) }); } catch (e) { if (e.name === 'AbortError') return; } // 玩家自己关了分享面板：不再下载
+    const a = el('a'); a.href = URL.createObjectURL(b); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); });
 }
 let camp = null, after = null; // camp：正在打的闯关关卡；after：结算后主按钮要做的事（下一关、重打、回地图）
 $('again').onclick = () => { $('tohome').hidden = false; (after || (() => start(mine, theirs)))(); }; $('tohome').onclick = () => { $('tohome').hidden = false; leave(); };
