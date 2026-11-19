@@ -154,7 +154,12 @@ export const FACTIONS = built.factions;   // { f1: { name, style, key }, ... , n
 export const STARTERS = built.starters;   // 每个阵营一套预设卡组
 export const FKEYS = Object.keys(FACTIONS).filter(f => f !== 'n');
 export const RETIRED = { neutral_dex: 'neutral_jaxi' }; // 删掉的牌 → 接班的牌。玩家存档里的卡组（自组的、闯关里锁定的）可能还带着旧牌：读进来时换掉，不然卡组作废、闯关开打直接报错
-export const upgrade = cards => (Array.isArray(cards) ? cards.map(c => (RETIRED[c] && !cards.includes(RETIRED[c]) ? RETIRED[c] : c)) : cards);
+// 从中立挪进某个阵营的牌 → 别的阵营的卡组里换成这几张中立牌里第一张卡组里还没有的（不换的话整副卡组作废，存档里的卡组会消失）
+export const MOVED = { n_scroll: ['n_courier', 'n_militia', 'potion'] }; // 2026-11-20 蓄能卷轴归机核
+export const upgrade = cards => { if (!Array.isArray(cards)) return cards; let d = cards.map(c => (RETIRED[c] && !cards.includes(RETIRED[c]) ? RETIRED[c] : c));
+  const f = d.map(c => CARDS[c]?.faction).find(x => x && x !== 'n');
+  for (const [c, alts] of Object.entries(MOVED)) if (d.includes(c) && f && CARDS[c].faction !== f) { const a = alts.find(x => !d.includes(x)); if (a) d = d.map(x => x === c ? a : x); }
+  return d; };
 export const DECKS = built.decks;         // 按打法组好的预设卡组：[{ f, name, plan, cards }]
 // 卡组代码：给别人抄卡组用的一串 48 个字符。每张牌取 id 的 24 位散列（3 个字节），12 张排好序拼起来再转成字母数字。
 // 用 id 的散列而不是牌表里的序号：以后增删牌，旧代码照样认得。两张牌撞了同一个散列的话自检会拦住（那就给新牌换个 id）。

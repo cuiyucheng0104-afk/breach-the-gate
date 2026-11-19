@@ -248,7 +248,7 @@ export function build(H) {
   unit('f4_underworldbrute', '冥界蛮兵', 'f4_underworldbrute', 4, 2, [P(E.selfBase(2))]);
   unit('f4_siren', '塞壬', 'f4_siren', 4, 1, [P(E.drain(1))]);
   unit('f4_deathknell', '丧钟', 'f4_deathknell', 4, 0, [P(E.cullAdj(2))]); // 原来是周围一圈：一张 4 费牌清掉整片小兵，人手里太强
-  spell('f4s_price', '血的代价', 4, 'foe', '消灭一个战力不超过 5 的敌方单位或建筑，你自己的城堡受 3 点伤害。', (s, ev, side, t, id) => { fx(ev, 'bolt', id, castle(side), [t]); kill(s, ev, t); _hb(s, ev, side, 3); }, (s, side, t) => s.board[t].str <= 5 && s.base[side] > 3);
+  spell('f4s_price', '血的代价', 3, 'foe', '对一个敌方单位或建筑造成 6 点伤害，你自己的城堡受 2 点伤害。', (s, ev, side, t, id) => { zap(s, ev, id, castle(side), [t], 6, 'bolt'); _hb(s, ev, side, 2); }, (s, side) => s.base[side] > 2); // 2026-11-20 用户定：原来 4 费、消灭战力不超过 5 的、城堡受 3
   struct('f4_daemongate', '魔门', 'f4_daemongate', 4, [T(E.spawn('wraith', 1, 'front'))]);
   struct('f4_buildminion', '暗影祭坛', 'f4_buildminion', 3, [P(E.taintAdj()), MOURN('对方城堡受 1 点伤害', 2, (s, ev, w, x, t) => { fx(ev, 'bolt', w.card, x, [{ base: 1 - w.side }]); hitBase(s, ev, 1 - w.side, 1); })]);
   struct('f4_buildlegendary', '灵魂熔炉', 'f4_buildlegendary', 6, [T(E.burn(1))]); // 原来 5 费：每回合白扣 1 血，慢卡组拿它没办法
@@ -525,7 +525,6 @@ export function build(H) {
   spell('sword', '利刃', 3, 'ally', '一个友方单位 +3 战力。', (s, ev, side, t, id) => bless(s, ev, id, castle(side), [t], 3));
   spell('gem', '蓝宝石', 4, 'foe', '对一个敌方单位或建筑造成 5 点伤害。', (s, ev, side, t, id) => zap(s, ev, id, castle(side), [t], 5, 'bolt'));
   spell('potion', '血瓶', 2, 'none', '你的城堡 +3 血，不超过开局的血量。', (s, ev, side, t, id) => { fx(ev, 'heal', id, castle(side), [castle(side)]); mend(s, ev, side, 3); }, (s, side) => s.base[side] < s.cap[side]);
-  spell('n_scroll', '蓄能卷轴', 1, 'none', '获得 2 点能量。', (s, ev, side) => { s.left += 2; ev.push({ t: 'mana', side, n: 2 }); });
 
   // ======== 零号协议：卡牌联盟锦标赛冠军 Q1 的卡组，赢下锦标赛才拿得到（prize）。机制是「算力」。2026-11-19 起归第 7 阵营机核（原来是中立） ========
   F = 'f7';
@@ -557,6 +556,7 @@ export function build(H) {
   // ======== 机核（第 7 阵营，机械种族）：算力 · 回收 · 组装。零号协议也算机核的牌 ========
   const rcalc = (n, k = 'core') => [`算力 +${n}`, .5 * n, calc(n, k)[2]]; // 算力单独不值 .9：没有释放牌时攒了也白攒
   token('tk_bit', '零件机', 'boss_decepticle');
+  spell('n_scroll', '蓄能卷轴', 0, 'none', '获得 1 点能量。', (s, ev, side) => { s.left += 1; ev.push({ t: 'mana', side, n: 1 }); }); // 2026-11-20 用户定：从中立挪到机核（id 不改，存档认得），原来 1 费得 2 点
   unit('r_drone', '巡检无人机', 'neutral_ion', 1, 1, [D(rcalc(1))]);
   unit('r_rivet', '铆钉工兵', 'neutral_mercmelee4', 2, 1, [P(rcalc(1))]);
   unit('r_trinket', '机仆', 'f3_palacetrinketeer', 2, 0, [P(laser(1)), D(rcalc(1))]);
