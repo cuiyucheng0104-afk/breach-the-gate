@@ -44,19 +44,21 @@ def cut(f, old, new):
     p = game / f; t = p.read_text(encoding='utf-8')
     if old not in t: sys.exit(f'TapTap 包要去掉联网功能，但 {f} 里找不到：{old[:40]}')
     p.write_text(t.replace(old, new, 1), encoding='utf-8')
-cut('chess-ui.js', ", ai: ['AI（大模型）', null]", '')
-cut('index.html', '</head>', '<style>#roombtn,#aibtn{display:none!important}</style></head>')
-(game / 'vendor/peerjs.min.js').unlink(missing_ok=True); (game / 'vendor/peerjs.LICENSE').unlink(missing_ok=True)
-# 大模型对手整个拿掉（资质里声明了不提供 AI 服务）：设置框换成没有文字的空壳（chess-ui.js 载入时要绑这些 id），llm.js 换成同样接口、永远“没开”的空壳，包里不留发请求的代码
-SHELL = '<dialog id="aidlg" hidden><select id="aistyle"></select><input id="aiurl"><input id="aikey"><input id="aimodel"><p id="aistat"></p><button id="aisave"></button><button id="aitest"></button><button id="aiclose"></button></dialog>\n'
-p = game / 'index.html'; t = p.read_text(encoding='utf-8'); t2 = re.sub(r'<dialog id="aidlg".*?</dialog>\s*', SHELL, t, count=1, flags=re.S)
-if t2 == t: sys.exit('TapTap 包要去掉大模型对手，但 index.html 里找不到 AI 设置框')
-t3 = re.sub(r'<button id="aibtn"[^>]*>.*?</button>', '<button id="aibtn" hidden></button>', t2, count=1)
-if t3 == t2: sys.exit('TapTap 包要去掉大模型对手，但 index.html 里找不到 AI 设置按钮')
-t2 = t3
-p.write_text(t2, encoding='utf-8')
-(game / 'taproom.js').write_text("// TapTap 版先不带联机（见 tools/build_h5.py），联网资质弄清楚再打开\nexport const available = () => false;\nexport const match = async () => { throw new Error('暂不提供联机。'); };\n", encoding='utf-8')
-(game / 'llm.js').write_text("// TapTap 版没有大模型对手（见 tools/build_h5.py）\nexport const last = { ms: 0, why: '', reply: '' };\nexport const cfg = () => ({});\nexport const save = () => {};\nexport const enabled = () => false;\nexport const ping = async () => ({ ok: false, msg: '' });\nexport const llmTurn = async () => [];\n", encoding='utf-8')
+WEB = '--web' in sys.argv  # 试玩网页（publish_pages.sh 带 --web）保留房间对战和大模型对手；不带就是 TapTap 包，下面这些都去掉
+if not WEB:
+    cut('chess-ui.js', ", ai: ['AI（大模型）', null]", '')
+    cut('index.html', '</head>', '<style>#roombtn,#aibtn{display:none!important}</style></head>')
+    (game / 'vendor/peerjs.min.js').unlink(missing_ok=True); (game / 'vendor/peerjs.LICENSE').unlink(missing_ok=True)
+    # 大模型对手整个拿掉（资质里声明了不提供 AI 服务）：设置框换成没有文字的空壳（chess-ui.js 载入时要绑这些 id），llm.js 换成同样接口、永远“没开”的空壳，包里不留发请求的代码
+    SHELL = '<dialog id="aidlg" hidden><select id="aistyle"></select><input id="aiurl"><input id="aikey"><input id="aimodel"><p id="aistat"></p><button id="aisave"></button><button id="aitest"></button><button id="aiclose"></button></dialog>\n'
+    p = game / 'index.html'; t = p.read_text(encoding='utf-8'); t2 = re.sub(r'<dialog id="aidlg".*?</dialog>\s*', SHELL, t, count=1, flags=re.S)
+    if t2 == t: sys.exit('TapTap 包要去掉大模型对手，但 index.html 里找不到 AI 设置框')
+    t3 = re.sub(r'<button id="aibtn"[^>]*>.*?</button>', '<button id="aibtn" hidden></button>', t2, count=1)
+    if t3 == t2: sys.exit('TapTap 包要去掉大模型对手，但 index.html 里找不到 AI 设置按钮')
+    t2 = t3
+    p.write_text(t2, encoding='utf-8')
+    (game / 'taproom.js').write_text("// TapTap 版先不带联机（见 tools/build_h5.py），联网资质弄清楚再打开\nexport const available = () => false;\nexport const match = async () => { throw new Error('暂不提供联机。'); };\n", encoding='utf-8')
+    (game / 'llm.js').write_text("// TapTap 版没有大模型对手（见 tools/build_h5.py）\nexport const last = { ms: 0, why: '', reply: '' };\nexport const cfg = () => ({});\nexport const save = () => {};\nexport const enabled = () => false;\nexport const ping = async () => ({ ok: false, msg: '' });\nexport const llmTurn = async () => [];\n", encoding='utf-8')
 # 版本号：入口页引用的脚本和样式、脚本之间互相引用的地址都带上 ?v=版本。浏览器会把文件缓存十分钟（GitHub Pages 定的），
 # 不带版本的话刚发布完会出现“新页面配旧脚本”——按钮在、点了没反应。带上之后新页面一定取新脚本；vendor 里的库不常变，不动
 V = hashlib.sha1(b''.join((ROOT / f).read_bytes() for f in sorted(seen))).hexdigest()[:8]

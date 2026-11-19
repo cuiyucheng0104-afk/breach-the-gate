@@ -3,7 +3,7 @@
 # 用法（项目根目录）：sh tools/publish_pages.sh
 set -e
 cd "$(dirname "$0")/.."
-python3 -I tools/build_h5.py
+python3 -I tools/build_h5.py --web   # 试玩网页保留房间对战和大模型对手（TapTap 包才去掉）
 VER="$(date +%Y-%m-%d) $(git rev-parse --short HEAD 2>/dev/null || echo 本地)"
 SITE="$(mktemp -d)"
 cp -R dist/breach-the-gate "$SITE/play"
