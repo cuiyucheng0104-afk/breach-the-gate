@@ -6,7 +6,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="theme-color" content="#080818">
 <link rel="icon" href="data:,">
-<title>一步翻盘 · 下棋</title>
+<title>攻破城门 · 下棋</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="motion.css">
 <link rel="stylesheet" href="campaign-ui.css">
@@ -14,7 +14,7 @@
 </head>
 <body class="chess">
 <!-- 载入界面：样式一到就能看见，盖住下面还没准备好的东西。进度条十二块砖，前七成由下面的小脚本走，后三成由 chess-ui.js 走。末尾那个看不见的像素数字只为让浏览器趁早去取数字图 -->
-<div id="boot" role="status" aria-live="polite"><b>一步翻盘</b><div class="bricks" id="bootbar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p id="boottext">正在载入…</p><span class="px" aria-hidden="true"><i style="--g:0"></i></span></div>
+<div id="boot" role="status" aria-live="polite"><b>攻破城门</b><div class="bricks" id="bootbar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p id="boottext">正在载入…</p><span class="px" aria-hidden="true"><i style="--g:0"></i></span></div>
 <!-- 竖屏不能玩：只给一句话（显示与否由样式按屏幕方向决定） -->
 <div id="rotate" role="alert"><i></i><b>请把手机横过来</b><p>这个游戏只能横着玩。</p></div>
 <script>
@@ -65,7 +65,7 @@
 <section id="home" class="screen" hidden>
   <div class="hero">
     <div>
-      <h2 class="title">一步翻盘</h2>
+      <h2 class="title">攻破城门</h2>
       <p class="lead">选一面旗，把兵一格一格推进对面的城堡。</p>
       <div id="modes" class="row" role="tablist" aria-label="玩法"></div>
     </div>
@@ -130,6 +130,7 @@
 </dialog>
 
 <script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script type="module" src="tapsave.js"></script><!-- TapTap 云存档：只在 TapTap 里生效 -->
 <script type="module" src="chess-ui.js" onerror="__boot.fail()"></script>
 </body>
 </html>

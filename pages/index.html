@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>一步翻盘 · 试玩</title>
+<title>攻破城门 · 试玩</title>
 <style>
   :root { --ink:#080818; --night-0:#0c1020; --night-1:#141c30; --night-2:#1c2844; --night-3:#2c3c5c; --night-4:#4a5c88; --paper:#ece4d0; --dim:#8e98b8; --go:#f8e040; --go-lo:#a87808; --hurt:#f06878; --boon:#68f0b0; }
   * { box-sizing:border-box; }
@@ -34,7 +34,7 @@
 </head>
 <body>
 <main>
-  <h1>一步翻盘</h1>
+  <h1>攻破城门</h1>
   <p class="dim">试玩版 · __VERSION__</p>
   <p>构筑卡牌下棋。组一副 12 张牌的卡组，把兵一格一格推进对面的城门。和电脑对战，一局十分钟左右。</p>
   <a class="play" href="play/">开始试玩</a>
@@ -83,10 +83,10 @@
     </div>
     <p class="dim" style="margin-top:16px">"提交到 GitHub"会打开一个已经填好的反馈单，需要登录 GitHub 账号。没有账号就点"复制文字"，把内容发给邀请你试玩的人。</p>
   </form>
-  <footer>源码和素材许可：<a href="https://github.com/cuiyucheng0104-afk/yibu-fanpan">github.com/cuiyucheng0104-afk/yibu-fanpan</a></footer>
+  <footer>源码和素材许可：<a href="https://github.com/cuiyucheng0104-afk/breach-the-gate">github.com/cuiyucheng0104-afk/breach-the-gate</a></footer>
 </main>
 <script>
-  const REPO = 'cuiyucheng0104-afk/yibu-fanpan', $ = id => document.getElementById(id), state = { rating: '', again: '' };
+  const REPO = 'cuiyucheng0104-afk/breach-the-gate', $ = id => document.getElementById(id), state = { rating: '', again: '' };
   const RATING = ['5 很好玩，想继续', '4 不错', '3 一般', '2 有点无聊', '1 玩不下去'], AGAIN = ['会', '不一定', '不会'];
   function picks(id, list) { $(id).replaceChildren(...list.map(t => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.setAttribute('aria-pressed', 'false'); b.onclick = () => { state[id] = state[id] === t ? '' : t; for (const x of $(id).children) x.setAttribute('aria-pressed', String(x.textContent === state[id])); }; return b; })); }
   picks('rating', RATING); picks('again', AGAIN);

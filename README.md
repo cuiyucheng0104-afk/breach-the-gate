@@ -1,11 +1,11 @@
-# 一步翻盘
+# 攻破城门
 
 一个网页上的构筑卡牌下棋游戏。4 路 × 5 格的棋盘，双方各有一座城堡，把兵一格一格推进对面的城门。组一副 12 张牌的卡组，和电脑对战。
 
 **现在是试玩阶段。** 打开就能玩，玩完请留一条反馈。
 
-- 试玩和反馈：https://cuiyucheng0104-afk.github.io/yibu-fanpan/
-- 直接进游戏：https://cuiyucheng0104-afk.github.io/yibu-fanpan/play/
+- 试玩和反馈：https://cuiyucheng0104-afk.github.io/breach-the-gate/
+- 直接进游戏：https://cuiyucheng0104-afk.github.io/breach-the-gate/play/
 
 ## 有什么
 

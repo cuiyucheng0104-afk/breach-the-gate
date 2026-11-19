@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 python3 -I tools/build_h5.py
 VER="$(date +%Y-%m-%d) $(git rev-parse --short HEAD 2>/dev/null || echo 本地)"
 SITE="$(mktemp -d)"
-cp -R dist/yibu-fanpan "$SITE/play"
+cp -R dist/breach-the-gate "$SITE/play"
 sed "s/__VERSION__/$VER/g" pages/index.html > "$SITE/index.html"
 touch "$SITE/.nojekyll"                     # 不让 GitHub 用 Jekyll 处理，文件原样发布
 URL="$(git remote get-url origin)"

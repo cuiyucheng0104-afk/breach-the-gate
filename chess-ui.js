@@ -195,7 +195,7 @@ const read = s => nap(Math.max(.4, s / board.rate()));               // 给人�
 const restart = (e, cls) => { e.classList.remove(cls); void e.offsetWidth; e.classList.add(cls); }; // 重新触发一次 CSS 动画
 // 演出要用的节点由脚本创建，挂在舞台或 body 上：回合旗带、对方亮牌位、牌库堆、受击描边；拒绝原因、城门过场
 const mk = (id, html) => { const e = el('div', '', html); e.id = id; return e; }, stage = $('stage3d'), handEl = $('hand');
-const flagEl = mk('flag'), revealEl = mk('reveal'), pileEl = mk('pile'), edgeEl = mk('edge'), whyEl = mk('why'), gateEl = mk('gate', `<i class="l"></i><i class="r"></i><b>一步翻盘<span class="bricks">${'<i></i>'.repeat(12)}</span></b>`), zoomEl = mk('zoom'), dragEl = mk('drag');
+const flagEl = mk('flag'), revealEl = mk('reveal'), pileEl = mk('pile'), edgeEl = mk('edge'), whyEl = mk('why'), gateEl = mk('gate', `<i class="l"></i><i class="r"></i><b>攻破城门<span class="bricks">${'<i></i>'.repeat(12)}</span></b>`), zoomEl = mk('zoom'), dragEl = mk('drag');
 stage.append(flagEl, revealEl, pileEl, edgeEl, zoomEl); document.body.append(whyEl, gateEl, dragEl);
 const bricks = (bar, k) => [...bar.children].forEach((b, i) => b.classList.toggle('on', i < Math.round(k * bar.children.length))); // 进度：到了几成亮几块砖
 // 触屏没有悬停，“看”和“做”要分成两下。touch：上一次点按是不是手指（地址带 ?touch 则一直算，测试用）；armed：已经看过预演、再点一次就打出的那一格
