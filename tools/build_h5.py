@@ -5,8 +5,8 @@
 import hashlib, re, shutil, sys, zipfile
 from pathlib import Path
 ROOT, OUT, NAME = Path('.'), Path('dist'), 'breach-the-gate'
-DIRS = ['assets/units', 'assets/icons', 'assets/ui', 'assets/audio', 'assets/avatars', 'assets/ai', 'vendor']           # 整个目录带上的素材
-SKIP = re.compile(r'(^|/)(\.DS_Store|CREDITS\.md|.*\.map)$')
+DIRS = ['assets/units', 'assets/icons', 'assets/ui', 'assets/audio', 'assets/avatars', 'assets/ai', 'vendor', 'arenas']  # 整个目录带上的素材；arenas 是对战场景，board3d.js 按阵营动态载入，跟不出来引用
+SKIP = re.compile(r'(^|/)(\.DS_Store|CREDITS\.md|README\.md|.*\.map)$')
 html = (ROOT / 'board.html').read_text(encoding='utf-8')
 html = re.sub(r'<a\b[^>]*href="(?:index|duel)\.html"[^>]*>.*?</a>', '', html, flags=re.S)  # 旧的解谜页和对战页不进包，入口链接去掉
 todo, seen = [], set()

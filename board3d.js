@@ -24,9 +24,11 @@ const tileX = r => (r - (ROWS - 1) / 2) * LX;    // 第 0 行贴着你的城堡�
 const tileZ = c => (c - (COLS - 1) / 2) * LZ;    // 第 0 路最远，最后一路最靠近镜头
 const HALF = ROWS * LX / 2, DEPTH = COLS * LZ;
 const Q = new URLSearchParams(location.search);
-// 试玩用的自定义擂台（arenas/ 目录，一套一个文件夹，各用各的画法和素材）：地址带 ?arena=<名字> 时整局都用它，不再跟着对手阵营换场地
+// 场地用 arenas/ 里的七套擂台（一套一个文件夹，各用各的画法和素材），按对手阵营选；无主之地和中立用林间寨。
+// 地址带 ?arena=<名字> 时整局都用那一套（看场景用）。擂台载入失败时退回下面 THEMES 里原来那几套
 const ARENAS = { c: 'c-zhai', b: 'b-shui', sea: 'shan-gong', forge: 'lu-fang', chapel: 'sheng-tang', sky: 'yun-dao', harvest: 'mai-chang' };
-const ARENA = ARENAS[Q.get('arena')] ? `./arenas/${ARENAS[Q.get('arena')]}/arena.js` : null;
+const ARENA_OF = { n: 'c-zhai', f1: 'sheng-tang', f2: 'b-shui', f3: 'mai-chang', f4: 'shan-gong', f5: 'c-zhai', f6: 'yun-dao', f7: 'lu-fang' };
+const FORCED = ARENAS[Q.get('arena')] || null;
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches || Q.has('calm'); // 减少动态效果：跟系统设置走；地址带 ?calm 也算（测试用）
 document.documentElement.classList.toggle('calm', calm);                               // motion.css 按这个类降级
 let seed = 31; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
@@ -470,12 +472,50 @@ const THEMES = {
 };
 
 // ---------- 换场地：拆掉上一套（几何体、材质、贴图全部释放），按键搭新的一套。幂等：同一个场地重复调用什么都不做 ----------
-let set = null, themeKey = null, driftT = null, driftV = 0, moteN = 0, arena = null;
+let set = null, themeKey = null, driftT = null, driftV = 0, moteN = 0, arena = null, arenaDir = null, arenaOff = [], pristine = null;
+const arenaMods = {}, loadArena = dir => arenaMods[dir] ||= import(`./arenas/${dir}/arena.js`).catch(e => (console.error('场景没载入，改用原来的场地', dir, e), null));
+// 擂台是按“整页只搭一次”写的：搭第一套之前把它会动到的东西记一份（场景里有哪些物体、城堡组和格子的子物体与材质、灯、雾、后期参数），
+// 换下一套时照这份拆回去：多出来的物体和材质全部释放，它挂的 resize 监听摘掉，再搭新的
+function snapshot() {
+  const tf = o => ({ o, p: o.position.clone(), r: o.rotation.clone(), s: o.scale.clone(), v: o.visible, m: o.material, kids: [...o.children] });
+  const uni = p => Object.fromEntries(Object.entries(p.uniforms).filter(([k]) => k !== 'tDiffuse' && k !== 'dir').map(([k, u]) => [k, u.value?.clone ? u.value.clone() : u.value]));
+  return { kids: [...scene.children], cam: [...camera.children], ck: castles.map(c => [...c.g.children]), tiles: [...tiles], tf: [...tiles, ...lines].map(tf), fog: scene.fog, bg: scene.background.clone(),
+    amb: [amb.color.clone(), amb.intensity], sun: [sun.color.clone(), sun.intensity, sun.position.clone(), sun.target.position.clone(), sun.shadow.bias, sun.shadow.normalBias, sun.shadow.radius],
+    bloom: [bloom.strength, bloom.radius, bloom.threshold], grade: grade.enabled, uni: [tiltH, tiltV, grade].map(uni), tm: [renderer.toneMapping, renderer.toneMappingExposure] };
+}
+const dropMat = m => { if (m && !m.userData?.keep) { for (const v of Object.values(m)) if (v?.isTexture) v.dispose(); for (const u of Object.values(m.uniforms || {})) if (u?.value?.isTexture) u.value.dispose(); m.dispose(); } };
+const dropArena = o => { o.traverse(x => { for (const m of [x.material, x.customDepthMaterial].flat()) dropMat(m); }); scrap(o); }; // 擂台的材质还用了 map 以外的贴图槽（自发光、透明度、着色器里的贴图）：一起释放
+function unarena() {
+  if (!pristine) return; const B = pristine; arena = null; arenaDir = null;
+  for (const [ty, f, o] of arenaOff.splice(0)) removeEventListener(ty, f, o);
+  for (const o of [...camera.children]) if (!B.cam.includes(o)) { camera.remove(o); dropArena(o); } // 有的擂台把前景挂在镜头上（镜头也会被它加进场景）
+  for (const o of [...scene.children]) if (!B.kids.includes(o)) { scene.remove(o); if (o !== camera) dropArena(o); }
+  castles.forEach((c, i) => { for (const o of [...c.g.children]) if (!B.ck[i].includes(o)) { c.g.remove(o); dropArena(o); } });
+  tiles.length = 0; tiles.push(...B.tiles);
+  for (const x of B.tf) { const o = x.o; for (const k of [...o.children]) if (!x.kids.includes(k)) { o.remove(k); dropArena(k); }
+    if (o.material !== x.m) { dropMat(o.material); o.material = x.m; } o.position.copy(x.p); o.rotation.copy(x.r); o.scale.copy(x.s); o.visible = x.v; }
+  scene.fog = B.fog; scene.background.copy(B.bg); amb.color.copy(B.amb[0]); amb.intensity = B.amb[1];
+  sun.color.copy(B.sun[0]); sun.intensity = B.sun[1]; sun.position.copy(B.sun[2]); sun.target.position.copy(B.sun[3]); [sun.shadow.bias, sun.shadow.normalBias, sun.shadow.radius] = B.sun.slice(4);
+  sun.shadow.mapSize.setScalar(low ? 1024 : 2048); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } sun.shadow.camera.updateProjectionMatrix();
+  [bloom.strength, bloom.radius, bloom.threshold] = B.bloom; grade.enabled = B.grade; [renderer.toneMapping, renderer.toneMappingExposure] = B.tm;
+  [tiltH, tiltV, grade].forEach((p, i) => { for (const [k, v] of Object.entries(B.uni[i])) { const u = p.uniforms[k]; if (u.value?.copy) u.value.copy(v); else u.value = v; } });
+  castles[0].body.visible = true;
+}
+function build(dir, mod) {
+  if (set) { scrap(set); set = null; } if (castles[1].body) { scrap(castles[1].body); castles[1].g.remove(castles[1].body); castles[1].body = null; }
+  unarena(); pristine ||= snapshot(); castles[0].body.visible = false; moteN = 0; moteGeo.setDrawRange(0, 0); driftT = null;
+  const adds = [], ael = globalThis.addEventListener; globalThis.addEventListener = (ty, f, o) => { adds.push([ty, f, o]); return ael.call(globalThis, ty, f, o); }; // 记下它挂的监听，拆的时候摘掉
+  try { arena = mod.build({ THREE, scene, camera, renderer, amb, sun, tiles, lines, castles: castles.map(c => c.g), post: { bloom, tiltH, tiltV, grade }, low, calm, team: TEAM.map(t => t.hex),
+    grid: { ROWS, COLS, LX, LZ, HALF, DEPTH, HPY, SHORT, tileX, tileZ } }); } finally { globalThis.addEventListener = ael; }
+  arenaOff = adds; arenaDir = dir; themeKey = 'arena-' + dir; ambient();
+}
+// 换场地：按对手阵营挑擂台（载入是异步的，期间又换了就只搭最后要的那套）；擂台载入失败就画原来的那套
 function theme(key = 'n') {
-  if (arenaMod) { // 自定义擂台：只搭一次。常驻的东西照旧（格子还是那 20 块、两座城堡的组还在原位，挨打下沉照动），它自己换格子的贴图、往城堡的组里搭自己的门、管自己的灯和飘的东西
-    if (arena) return; themeKey = 'arena-' + Q.get('arena'); castles[0].body.visible = false; moteN = 0; moteGeo.setDrawRange(0, 0);
-    arena = arenaMod.build({ THREE, scene, camera, renderer, amb, sun, tiles, lines, castles: castles.map(c => c.g), post: { bloom, tiltH, tiltV, grade }, low, calm, team: TEAM.map(t => t.hex),
-      grid: { ROWS, COLS, LX, LZ, HALF, DEPTH, HPY, SHORT, tileX, tileZ } }); return; }
+  const dir = FORCED || ARENA_OF[key] || ARENA_OF.n; if (dir === arenaDir) return; arenaWant = dir;
+  loadArena(dir).then(mod => { if (arenaWant !== dir || dir === arenaDir) return; if (mod) build(dir, mod); else { unarena(); drawn(key); ambient(); } });
+}
+let arenaWant = null;
+function drawn(key = 'n') {
   if (!THEMES[key]) key = 'n'; if (key === themeKey) return; themeKey = key;
   if (set) scrap(set); if (castles[1].body) scrap(castles[1].body); driftT = null; seed = 131 + key.charCodeAt(key.length - 1) * 977;
   const A = Atlas(), K = { win: A.add(windowC[1]), ban: A.add(bannerC[1]), mat: A.add(matC[1]) }, th = THEMES[key](A), cache = new Map(), B = Batch(); set = new THREE.Group(); scene.add(set);
@@ -885,8 +925,8 @@ function quality(q) { // 画质档位：不带参数是查询；'low' / 'high' �
   sun.shadow.mapSize.setScalar(low ? 1024 : 2048); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   moteGeo.setDrawRange(0, Math.round(moteN * (low ? .4 : 1))); resize(); return q;
 }
-const arenaMod = ARENA ? await import(ARENA).catch(e => (console.error('自定义擂台没载入，改用原来的场地', e), null)) : null;
-new ResizeObserver(resize).observe(stage); theme(Q.get('theme') || 'n'); ambient(); resize();   // 没人调用 board.theme 时就是无主之地；地址带 ?theme=f3 可以直接看某一套（测试用）
+{ const k = Q.get('theme') || 'n', dir = FORCED || ARENA_OF[k] || ARENA_OF.n, mod = await loadArena(dir); if (mod) build(dir, mod); else drawn(k); } // 第一帧就有场地：开局那一套先等它载完
+new ResizeObserver(resize).observe(stage); ambient(); resize();   // 没人调用 board.theme 时就是无主之地；地址带 ?theme=f3 可以直接看某一套（测试用）
 
 let last = -1, pan = 0, air = 0, tick = 0; const frame = { calls: 0, tris: 0 };
 function loop(stamp) {
