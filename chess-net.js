@@ -49,8 +49,20 @@ export function initNet(rnd = Math.random, H1 = 64, H2 = 32) { // 隐藏层大�
 }
 export const KEYS = ['E', 'W1', 'b1', 'W2', 'b2', 'w3', 'b3'];
 export const toJSON = net => JSON.stringify({ cards: CIDS, din: DIN, ...Object.fromEntries(KEYS.map(k => [k, Array.from(net[k], v => Math.round(v * 1e5) / 1e5)])) });
-export function fromJSON(txt) { const o = typeof txt === 'string' ? JSON.parse(txt) : txt, v2 = o.v === 2;
-  if (o.din !== DIN + (v2 ? EX : 0) || o.cards.join() !== CIDS.join()) throw new Error('网络是按另一套牌训练的，要重训'); return { ...Object.fromEntries(KEYS.map(k => [k, Float32Array.from(o[k])])), v2 }; }
+export function fromJSON(txt) {
+  const o = typeof txt === 'string' ? JSON.parse(txt) : txt, v2 = o.v === 2;
+  if (!Array.isArray(o.cards) || new Set(o.cards).size !== o.cards.length || o.cards.length !== CIDS.length || CIDS.some(k => !o.cards.includes(k)))
+    throw new Error('网络是按另一套牌训练的，要重训');
+  const din = DIN + (v2 ? EX : 0), h1 = o.b1?.length, h2 = o.b2?.length;
+  const sizes = { E: NC * D, W1: din * h1, b1: h1, W2: h1 * h2, b2: h2, w3: h2, b3: 1 };
+  if ((o.v !== undefined && o.v !== 1 && o.v !== 2) || o.din !== din || !h1 || !h2 || KEYS.some(k => !Array.isArray(o[k]) || o[k].length !== sizes[k] || o[k].some(v => !Number.isFinite(v))))
+    throw new Error('网络结构或权重损坏，无法载入');
+  const net = { ...Object.fromEntries(KEYS.map(k => [k, Float32Array.from(o[k])])), v2 };
+  // 阵营迁移会改变牌表顺序。嵌入按稳定 ID 对齐，不能直接沿用旧行号；0 行仍为空牌。
+  const oldIndex = new Map(o.cards.map((k, i) => [k, i + 1]));
+  CIDS.forEach((k, i) => { const old = oldIndex.get(k); net.E.set(o.E.slice(old * D, (old + 1) * D), (i + 1) * D); });
+  return net;
+}
 
 // ---------- 第 2 代：再看卡组（v: 2 的网络；在 tools/lab/v2 用显卡训练，这里只有前向） ----------
 // 额外输入都是玩家自己知道的：自己整副 12 张（= 牌库 + 手牌 + 刚用掉的）、牌库剩余（整副去掉手牌）、对面亮过的牌（s.seen）。
