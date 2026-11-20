@@ -1,0 +1,106 @@
+/* 卡牌联盟锦标赛（cup-ui.js 生成的那一屏）。和闯关地图一样整屏盖住城堡（#home 同时带 .camp 和 .cupmode）。
+   一屏一个主角：报名时是两个卡组位，抽签时是八个对阵位，赛程里是积分表和这一轮的对阵；金色只给底下石板上的那一个按钮。
+   字号只用 12/14/16/24/48，间距只用 4/8/16/24/48，不用圆角、模糊阴影和发光（DESIGN.md）。 */
+#cup { flex:1; min-height:0; display:flex; flex-direction:column; padding:var(--s3) max(var(--s5), var(--sr)) var(--s3) max(var(--s5), var(--sl)); overflow:hidden; }
+#cup > div { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; gap:var(--s3); }
+.cup-head { display:flex; align-items:baseline; gap:var(--s3); flex-wrap:wrap; }
+.cup-head h2 { font:700 var(--f24); } .cup-head p { color:var(--dim); } .cup-head p i { font-style:normal; }
+.cup-head .link { margin-left:auto; }
+.cup-two { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:minmax(0, 7fr) minmax(0, 5fr); gap:var(--s4); align-items:start; }
+#cup .dim { color:var(--dim); } #cup .err { min-height:24px; color:var(--hurt-hi); }
+
+/* 选手：头像 + 名字。头像是像素画（整数倍放大），满强度的三位名字是纸白，自己是绿色 */
+.who { display:inline-flex; align-items:center; gap:var(--s2); min-width:0; }
+.who b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:600 var(--f14); }
+.who small { color:var(--go); font:var(--f12); }
+.who.me b { color:var(--boon); } .who.top b { color:var(--paper); } .who:not(.me, .top) b { color:var(--dim); }
+img.ava { flex:none; width:calc(50px * var(--z, 1)); height:calc(50px * var(--z, 1)); image-rendering:pixelated; }
+.who img.ava { width:40px; height:40px; image-rendering:auto; }   /* 列表里缩到 40：50 的像素画缩小一点点，不必整数倍 */
+.who .ava.spr { margin:0 calc(var(--cell) * var(--s) * -.25px); }   /* 角色图格子两侧是空的：往里收一点，名字不离太远 */
+
+/* ---------- 报名 ---------- */
+.slab.sign { display:grid; gap:var(--s3); align-content:start; }
+.slab.sign > b { font:700 var(--f16); }
+.slot { display:grid; grid-template-columns:auto 1fr; gap:var(--s1) var(--s2); align-items:center; }
+.slot select { width:100%; height:36px; padding:0 var(--s2); background:var(--night-2); color:var(--paper); border:0; box-shadow:var(--edge); font:var(--f14); }
+.slot .mini { grid-column:2; color:var(--fl); font:var(--f12); }
+.slab.sign .primary { justify-self:start; }
+.prize { display:grid; gap:var(--s2); justify-items:start; align-content:start; }
+.prize > b { font:700 var(--f16); color:var(--go); }
+.seeds { display:grid; gap:var(--s2); }
+/* 宝箱：木箱 + 一道金箍 + 锁扣，纯色块拼的，硬边 */
+.chest { position:relative; display:block; width:64px; height:48px; background:linear-gradient(var(--go) 0 0) 50% 0 / 8px 100% no-repeat, linear-gradient(#5a3818 0 0) 0 18px / 100% 4px no-repeat, #8a5a2a; box-shadow:var(--edge), 0 4px 0 var(--ink); }
+.chest::after { content:''; position:absolute; left:calc(50% - 6px); top:14px; width:12px; height:12px; background:var(--go-lo); box-shadow:var(--edge); }
+button.chest.big, button.chest.big:active:not(:disabled) { width:128px; height:96px; padding:0; background:linear-gradient(var(--go) 0 0) 50% 0 / 16px 100% no-repeat, linear-gradient(#5a3818 0 0) 0 36px / 100% 8px no-repeat, #8a5a2a; box-shadow:var(--edge), 0 8px 0 var(--ink); transform:none; }
+button.chest.big::after { left:calc(50% - 12px); top:28px; width:24px; height:24px; }
+.chest.open { animation:cup-shake var(--t-4) steps(6); }
+@keyframes cup-shake { 20% { translate:-4px 0; } 40% { translate:4px 0; } 60% { translate:-4px -4px; } 80% { translate:4px 0; } }
+
+/* ---------- 抽签：两列四行的对阵位，名字一个个落进来 ---------- */
+.pairs { flex:1; min-height:0; overflow:auto; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:var(--s2) var(--s4); align-content:start; }
+.pair { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); align-items:center; gap:var(--s2); min-height:48px; padding:0 var(--s2); background:var(--night-1); }
+.pair .vs { color:var(--night-4); font:700 var(--f12); font-style:normal; }
+.pair .seat:last-child { justify-self:end; }
+.pair .seat.in { animation:cup-drop var(--t-3) steps(3); }
+@keyframes cup-drop { from { translate:0 -8px; opacity:0; } }
+.cup-draw > .primary { align-self:flex-start; }
+
+/* ---------- 赛程：左边积分表（或八强对阵图），右边这一轮的对阵 ---------- */
+.stand { width:100%; border-collapse:collapse; }
+.stand th { padding:0 var(--s2) var(--s1); color:var(--night-4); font:var(--f12); text-align:left; }
+.stand td { padding:2px var(--s2); border-top:2px solid var(--night-1); vertical-align:middle; }
+.stand .rk .px, .stand .wl .px { color:var(--paper); }
+.stand .wl i { margin:0 2px; color:var(--night-4); font-style:normal; }
+.stand .df { color:var(--dim); font:var(--f12); }
+.stand tr.me td { background:var(--night-1); }
+.stand tr.out td:not(:last-child) { opacity:.45; }
+.stand em { font:700 var(--f12); font-style:normal; } .stand .tq { color:var(--boon); } .stand .tx { color:var(--hurt-hi); }
+.stand .who img.ava { width:32px; height:32px; }
+.list { display:grid; gap:var(--s2); align-content:start; }
+.match { position:relative; display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); align-items:center; gap:var(--s2); min-height:48px; padding:var(--s1) var(--s2); background:var(--night-1); }
+.match::after { content:attr(data-bo); position:absolute; right:var(--s1); top:-2px; color:var(--night-4); font:var(--f12); }
+.match .side:last-child { justify-self:end; } .match .side:last-child .who { flex-direction:row-reverse; }
+.match .sc { color:var(--paper); white-space:nowrap; } .match .sc i { margin:0 2px; font-style:normal; color:var(--night-4); }
+.match .side.lost { opacity:.45; }
+.match.mine { box-shadow:inset 0 0 0 2px var(--night-3); }
+.match.done { animation:cup-flip var(--t-3) steps(3); }
+@keyframes cup-flip { from { clip-path:inset(0 0 100% 0); } }
+.match.tbd { min-height:48px; background:none; box-shadow:inset 0 0 0 2px var(--night-1); }
+.cup-two.ko { grid-template-columns:1fr; }
+.bracket { height:100%; min-height:320px; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:var(--s4); }
+.bracket .col { display:flex; flex-direction:column; gap:var(--s2); }
+.kcol { flex:1; display:flex; flex-direction:column; justify-content:space-around; gap:var(--s2); }
+.km { display:grid; gap:2px; padding:var(--s1) var(--s2); background:var(--night-1); }
+.km.mine { box-shadow:inset 0 0 0 2px var(--night-3); } .km.now { box-shadow:inset 0 0 0 2px var(--go); }
+.km.champ { min-height:44px; align-content:center; }
+.kl { display:flex; align-items:center; justify-content:space-between; gap:var(--s2); min-height:32px; }
+.kl.lost { opacity:.45; } .kl .kw .px { color:var(--paper); }
+/* 底下一条石板：自己这场（对手、局数、两套卡组旗、出战），或者这一轮接下来做什么 */
+.slab.act { display:flex; align-items:center; gap:var(--s3); flex-wrap:wrap; }
+.slab.act .flags { display:flex; gap:var(--s2); margin-left:auto; } .slab.act .flags .flag { width:auto; max-width:200px; }
+.slab.act .flags .flag.on { width:auto; }
+.slab.act .primary { margin-left:auto; } .slab.act .flags + .primary { margin-left:0; }
+
+/* ---------- 颁奖 ---------- */
+.podium { display:flex; align-items:center; gap:var(--s5); min-height:120px; }
+.podium .who img.ava { width:100px; height:100px; image-rendering:pixelated; } .podium .who b { font:700 var(--f24); }
+.loot { flex:1; min-height:0; overflow:auto; display:flex; flex-wrap:wrap; gap:var(--s2); align-content:flex-start; }
+.loot .kcard { animation:cup-deal var(--t-4) var(--e-out) both; animation-delay:calc(var(--i) * 80ms); }
+@keyframes cup-deal { from { translate:0 24px; opacity:0; } }
+
+/* 结算里对手的大头像（它赢了得意、输了伤心） */
+#reward img.foeface { width:100px; height:100px; image-rendering:pixelated; }
+
+.calm #cup *, .calm #cup *::after { animation:none !important; }
+
+@media (max-height:540px) {
+  #cup { padding:var(--s2) max(var(--s3), var(--sr)) var(--s2) max(var(--s3), var(--sl)); }
+  #cup > div { gap:var(--s2); }
+  .cup-head { padding-right:max(360px, calc(var(--sr) + 360px)); } .cup-head h2 { font:700 var(--f16); } .cup-head p { font:var(--f12); }   /* 右上角是玩法页签，标题这一行给它让出位置 */
+  .slot .mini, .prize > p { display:none; }
+  .cup-two { gap:var(--s3); }
+  .stand td { padding:0 var(--s1); } .stand .who img.ava { width:24px; height:24px; } .who img.ava { width:32px; height:32px; }
+  .match, .pair { min-height:36px; }
+  .slab.act { padding:var(--s2); gap:var(--s2); }
+}
+.cup-entry .credit { color:var(--night-4); font:var(--f12); }

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#080818">
+<link rel="icon" href="data:,">
+<title>攻破城门 · 下棋</title>
+<link rel="stylesheet" href="style.css?v=112a67f0">
+<link rel="stylesheet" href="motion.css?v=112a67f0">
+<link rel="stylesheet" href="campaign-ui.css?v=112a67f0">
+<link rel="stylesheet" href="cup-ui.css?v=112a67f0">
+</head>
+<body class="chess">
+<!-- 载入界面：样式一到就能看见，盖住下面还没准备好的东西。进度条十二块砖，前七成由下面的小脚本走，后三成由 chess-ui.js 走。末尾那个看不见的像素数字只为让浏览器趁早去取数字图 -->
+<div id="boot" role="status" aria-live="polite"><b>攻破城门</b><div class="bricks" id="bootbar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p id="boottext">正在载入…</p><span class="px" aria-hidden="true"><i style="--g:0"></i></span></div>
+<!-- 竖屏不能玩：只给一句话（显示与否由样式按屏幕方向决定） -->
+<div id="rotate" role="alert"><i></i><b>请把手机横过来</b><p>这个游戏只能横着玩。</p></div>
+<script>
+// 模块还没执行的那一段，靠浏览器的资源计时数“脚本到了几个”来走进度（总数记上一次的，第一次按 24 个估）；出错就停下来请玩家重试
+(() => { const K = 'yibu-fanpan.boot.n', boot = document.getElementById('boot'), bar = document.getElementById('bootbar').children, got = () => performance.getEntriesByType('resource').filter(e => /\.js(\?|$)/.test(e.name)).length;
+  let all = 24, at = 0; try { all = +localStorage.getItem(K) || all; } catch {}
+  const set = k => { at = Math.max(at, Math.round(Math.min(1, k) * bar.length)); for (let i = 0; i < bar.length; i++) bar[i].className = i < at ? 'on' : ''; };
+  const t = setInterval(() => set(.7 * got() / all), 100), fail = () => { if (!boot.isConnected || boot.classList.contains('done')) return; clearInterval(t); boot.classList.add('fail'); document.getElementById('boottext').textContent = '没载入成功，点一下重试'; };
+  boot.onclick = () => { if (boot.classList.contains('fail')) location.reload(); }; addEventListener('error', fail); addEventListener('unhandledrejection', fail);
+  window.__boot = { set, fail, stop() { clearInterval(t); try { localStorage.setItem(K, got()); } catch {} } };
+})();
+</script>
+<main>
+  <div id="stage3d">
+    <div id="tip"></div>
+    <div id="result" hidden><div class="slab"><b id="verdict"></b><p id="summary"></p><div id="reward"></div><div class="row"><button id="again" class="primary">再来一局</button><button id="tohome">回城</button></div></div></div>
+  </div>
+  <header>
+    <button id="menu" aria-label="菜单" aria-expanded="false"></button>
+    <button id="quit" class="danger" title="放弃这一局，回到开始界面">放弃</button>
+    <button class="mute link" title="打开或关掉声音">声音开</button>
+    <details id="rules"><summary class="link">规则</summary>
+      <ul class="slab">
+        <li><b>胜负</b>：把对面城堡的血打到 0 就赢。你的兵从左往右走，走进对面城门时按自己的战力扣城堡的血，然后离场。</li>
+        <li><b>回合</b>：轮到你时依次发生——你的建筑生效 → 结算状态（暗影、中毒、活力）→ 单位的“回合开始时”能力 → 你场上的兵各往前走一步 → 你用能量出牌。能量每回合多 1 点；后手开局多 1 点作为补偿，四个回合后拉平。</li>
+        <li><b>对撞</b>：战力既是攻击也是血量。两个兵对撞，互相按对方的战力扣；赢的一方带着剩下的战力占住那一格，打平同归于尽。被攻击的一方的效果先结算。</li>
+        <li><b>前进</b>：已经在场上的兵每回合只往前：正前有敌人就打，没有就走，不拐弯。只有<b>刚打出来、还在冲锋</b>的兵（移动力 1 以上）会拐去打旁边的敌人，顺序固定：正前 → 靠棋盘中间的一侧 → 靠边的一侧。例外是<b>嘲讽</b>：正前方或左右挨着带嘲讽的敌人，必须先打它，哪怕要拐弯；也不能从它身边走进城门。带嘲讽的兵头上挂着“嘲”。一步可以是走一格，也可以是打一下：打完还站着、还有步数的（刚打出来的兵，或者带乘风的兵），接着走下一步；只有被自己人挡住才停。</li>
+        <li><b>前线</b>：新兵只能放在你的前线以内。前线是你最靠前的兵或建筑所在的那一列，开局只有紧挨城堡的那一列，最远到对方家门口的前一列。法术不受前线限制。</li>
+        <li><b>手牌</b>：4 张，回合结束从牌库里随机补满，每回合可以换掉一张（换来的也是牌库里随机的一张）。这回合打出和换掉的牌，回合结束才洗回牌库，不会马上又抽到。</li>
+        <li><b>卡组</b>：12 张，同一张牌只能带一张，只能用一个阵营的牌再加中立牌。</li>
+        <li><b>建筑</b>：不会动，回合开始时最先生效；不会被冻住、中毒或策反，也吹不动（吹它改成打它 2 点），会挨打，也会被禁用。</li>
+        <li><b>状态</b>：<b>中毒</b>每个回合开始时 −1 战力，<b>活力</b>每个回合开始时 +1，两者互相顶掉。<b>冻住</b>的单位下回合不前进，解冻前能力也失效。<b>禁用</b>的单位能力永久失效，装备也掉了。<b>圣盾</b>挡下受到的第一次伤害。<b>暗影</b>格子让站在上面的敌人每回合 −1，留 3 个回合就散。</li>
+        <li><b>装备</b>：贴在一个友方单位身上，直到它倒下；一个单位只带一件。<b>种族</b>（龙、魔像、骑士）本身没有效果，有的牌会给同族加成。</li>
+        <li><b>牌的形状</b>：四角台阶的是单位，顶上有城垛的是建筑，上下锯齿的是法术，上角斜切带孔的是装备。左上水晶是费用，左下是战力，右下几个折角就是打出时能走几步。</li>
+      </ul>
+    </details>
+  </header>
+  <div id="side"><div id="foe"></div><div id="log"></div></div>
+  <div id="hint" role="status" aria-live="polite">正在载入…</div>
+  <div id="bar">
+    <div id="mana"></div>
+    <div id="hand"></div>
+    <div id="btns"><button id="swap">换牌</button><button id="end" class="primary">结束回合</button></div>
+  </div>
+  <div id="deckn"></div>
+</main>
+
+<section id="home" class="screen" hidden>
+  <div class="hero">
+    <div>
+      <h2 class="title">攻破城门</h2>
+      <p class="lead">选一面旗，把兵一格一格推进对面的城堡。</p>
+      <div id="modes" class="row" role="tablist" aria-label="玩法"></div>
+    </div>
+    <div>
+      <div id="picked"></div>
+      <div class="startbar">
+        <button id="play" class="primary">开始对局</button>
+        <button id="dailybtn" title="今天所有人打同一局：同一对卡组、同一个牌序，对面是大师电脑">今日挑战</button>
+        <button id="roombtn" title="用选中的卡组，和朋友在线对战">房间对战</button>
+        <button id="aibtn" title="填大模型的接口地址、Key、模型名" hidden>AI 设置</button>
+        <label class="opt">对手 <select id="foesel"><option value="any" selected>随机阵营</option></select></label>
+        <label class="opt">难度 <select id="diffsel"></select></label>
+        <span id="homehint" class="row"></span>
+      </div>
+    </div>
+  </div>
+  <div id="lineup" class="mini" aria-hidden="true"></div>
+  <div class="band"><div id="decklist"></div><button id="editdeck">改编</button><button id="newdeck">新卡组</button></div>
+  <nav class="old"><button class="mute link" title="打开或关掉声音">声音开</button></nav>
+</section>
+
+<section id="builder" class="screen" hidden>
+  <div class="wrap two">
+    <div class="left">
+      <h2 class="title">组牌</h2>
+      <div id="tabs" class="row"></div>
+      <p id="tabinfo" class="lead"></p>
+      <div class="row" id="filters"><div id="kinds" class="row"></div><span id="costs" class="row"></span><input id="bq" type="search" placeholder="搜牌名或说明，比如 中毒、圣盾" aria-label="搜索卡牌"></div>
+      <div id="pool"></div>
+    </div>
+    <aside class="right slab">
+      <input id="bname" maxlength="16" aria-label="卡组名字">
+      <div class="row" id="bcoderow"><input id="bcode" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="卡组代码" placeholder="卡组代码：把别人的代码粘贴到这里" title="选满 12 张后这里是这副卡组的代码；粘贴别人的代码就换成那副牌"><button id="bcopy" class="link" title="复制这副卡组的代码，发给别人">复制代码</button></div>
+      <div class="meta"><b id="bcount"></b><span id="bfaction"></span></div>
+      <div id="curve" title="各费用的张数"></div>
+      <div class="scroll">
+        <div id="bcards"></div>
+        <ul id="binsight" aria-label="卡组体检"></ul>
+      </div>
+      <p id="berr" role="status"></p>
+      <div class="row"><button id="bsave" class="primary">保存</button><button id="bfill" class="link" title="用当前阵营和中立牌随机补到 12 张">补满</button><button id="bclear" class="link">清空</button><button id="bcancel" class="link" title="不保存，回到开始界面">返回</button></div>
+    </aside>
+  </div>
+</section>
+
+<dialog id="roomdlg" class="slab dlg" aria-labelledby="roomtitle">
+  <b id="roomtitle">房间对战</b>
+  <p>用开始界面选中的卡组，和朋友在线对战。两个人各开一个页面：一个人开房，把房间号告诉另一个人，对方输入房间号加入。</p>
+  <div class="row"><button id="roommake" class="primary">开房</button><input id="roomcode" inputmode="numeric" maxlength="4" placeholder="房间号" aria-label="房间号" autocomplete="off"><button id="roomjoin">加入</button></div>
+  <p id="roomstat" role="status"></p>
+  <div class="row"><button id="roomclose" class="link">关闭</button></div>
+</dialog>
+
+<dialog id="aidlg" class="slab dlg" aria-labelledby="aititle">
+  <b id="aititle">AI 设置</b>
+  <p>难度选「AI（大模型）」时，由大模型当你的对手（只在自由对战里，闯关、锦标赛和教学不用）。每个电脑回合会把棋盘和 AI 这一方的手牌发给你填的接口，你的手牌不发。Key 只存在这台设备的浏览器里。选不带“思考”的快模型，回合更快。</p>
+  <label>接口类型 <select id="aistyle"><option value="openai">OpenAI 兼容（DeepSeek、通义、OpenAI 等）</option><option value="anthropic">Claude（Anthropic）</option></select></label>
+  <label>接口地址 <input id="aiurl" type="text" autocomplete="off" spellcheck="false"></label>
+  <label>Key <input id="aikey" type="password" autocomplete="off"></label>
+  <label>模型名 <input id="aimodel" type="text" autocomplete="off" spellcheck="false"></label>
+  <p id="aistat" role="status"></p>
+  <div class="row"><button id="aisave" class="primary">保存</button><button id="aitest">试走一回合</button><button id="aiclose" class="link">关闭</button></div>
+</dialog>
+
+<script type="importmap">{"imports":{"three":"./vendor/three.module.js","three/addons/":"./vendor/addons/"}}</script>
+<script type="module" src="tapsave.js?v=112a67f0"></script><!-- TapTap 云存档：只在 TapTap 里生效 -->
+<script type="module" src="chess-ui.js?v=112a67f0" onerror="__boot.fail()"></script>
+</body>
+</html>

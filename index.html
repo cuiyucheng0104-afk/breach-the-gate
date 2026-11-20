@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>攻破城门 · 试玩</title>
+<style>
+  :root { --ink:#080818; --night-0:#0c1020; --night-1:#141c30; --night-2:#1c2844; --night-3:#2c3c5c; --night-4:#4a5c88; --paper:#ece4d0; --dim:#8e98b8; --go:#f8e040; --go-lo:#a87808; --hurt:#f06878; --boon:#68f0b0; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--night-0); color:var(--paper); font:16px/1.7 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:48px 24px 96px; }
+  h1 { margin:0; font-size:48px; line-height:1.2; letter-spacing:.12em; }
+  h2 { margin:48px 0 16px; font-size:24px; line-height:1.3; }
+  h2::before { content:''; display:inline-block; width:8px; height:8px; margin-right:16px; background:var(--go); vertical-align:middle; }
+  p { margin:0 0 16px; } .dim { color:var(--dim); font-size:14px; }
+  ul { margin:0 0 16px; padding-left:24px; } li { margin:4px 0; }
+  a { color:var(--paper); }
+  .play { display:inline-block; margin:24px 0 8px; padding:0 48px; height:64px; line-height:58px; background:var(--go); color:#221a00; font-size:24px; font-weight:800; letter-spacing:.2em; text-decoration:none; border:2px solid var(--ink); box-shadow:0 6px 0 var(--go-lo), 0 8px 0 var(--ink); }
+  .play:active { transform:translateY(6px); box-shadow:0 2px 0 var(--ink); }
+  label { display:block; margin:24px 0 8px; font-weight:700; } label small { font-weight:400; color:var(--dim); }
+  input[type=text], textarea { width:100%; padding:8px 12px; background:var(--night-1); color:var(--paper); border:0; border-bottom:2px solid var(--night-3); font:inherit; }
+  input[type=text]:focus, textarea:focus { outline:none; border-bottom-color:var(--paper); }
+  textarea { min-height:72px; resize:vertical; }
+  .pick { display:flex; flex-wrap:wrap; gap:8px; } .pick button { min-width:48px; height:44px; padding:0 16px; background:var(--night-2); color:var(--paper); border:2px solid var(--ink); box-shadow:0 4px 0 var(--night-0); font:inherit; cursor:pointer; }
+  .pick button[aria-pressed=true] { background:var(--paper); color:var(--ink); }
+  .send { display:flex; flex-wrap:wrap; gap:16px; align-items:center; margin-top:32px; }
+  .send button { height:48px; padding:0 24px; background:var(--night-2); color:var(--paper); border:2px solid var(--ink); box-shadow:0 4px 0 var(--night-0); font:inherit; font-weight:700; cursor:pointer; }
+  .send button:active { transform:translateY(4px); box-shadow:none; }
+  #done { min-height:24px; color:var(--boon); font-size:14px; }
+  footer { margin-top:64px; color:var(--night-4); font-size:12px; }
+  @media (max-width:520px) { h1 { font-size:36px; } main { padding:32px 16px 64px; } .play { width:100%; text-align:center; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>攻破城门</h1>
+  <p class="dim">试玩版 · 2026-11-20 f2f544c</p>
+  <p>构筑卡牌下棋。组一副 12 张牌的卡组，把兵一格一格推进对面的城门。和电脑对战，一局十分钟左右。</p>
+  <a class="play" href="play/">开始试玩</a>
+  <p class="dim">目前在电脑浏览器里体验最好；手机请横屏。第一次打开要载入约 30 MB。</p>
+
+  <h2>第一次进去先点金色的「新手教学」，两分钟；规则速查在这</h2>
+  <ul>
+    <li>把对面城堡的血打到 0 就赢。你的兵从左往右走，走进城门时按自己的战力扣城堡的血。</li>
+    <li>每回合开始，你场上的兵各自动往前走一步；然后你用能量出牌。能量每回合多 1 点。</li>
+    <li>战力既是攻击也是血量。两个兵对撞，互相扣对方的战力，赢的占住那一格。</li>
+    <li>新兵只能放在你的前线以内：前线是你最靠前的兵所在的那一列，开局只有紧挨城堡的一列。</li>
+    <li>刚打出来的兵如果带移动力会马上冲出去，这时会拐去打旁边的敌人；已经在场上的兵只往前。</li>
+    <li>手牌 4 张，回合结束从牌库里随机补满；每回合可以换掉一张，换来的也是随机的一张。选中一张牌，把鼠标放到格子上（手机上点一下格子），会先画出打下去的结果。</li>
+  </ul>
+
+  <h2>已知的不足</h2>
+  <ul>
+    <li>手机横屏刚适配完，还没在真机上试过；有按不到、看不清的地方请告诉我们。</li>
+    <li>设置页还没做；声音没有细调，嫌吵可以点右上角关掉。</li>
+    <li>闯关的难度只用电脑模拟校准过，太难或太简单都请告诉我们。</li>
+  </ul>
+
+  <h2>玩完说两句</h2>
+  <p class="dim">每一项都可以只写一两句，不想答的留空。这一页不会自动上传任何东西，只有你点了下面的按钮才会发出去。</p>
+  <form id="f" onsubmit="return false">
+    <label for="device">用什么设备玩的 <small>已经帮你填了，不对可以改</small></label>
+    <input type="text" id="device">
+    <label for="progress">玩了多久，打到哪了 <small>有闯关存档会自动填上</small></label>
+    <input type="text" id="progress">
+    <label>好玩程度</label>
+    <div class="pick" id="rating" role="group" aria-label="好玩程度"></div>
+    <label for="stuck">第一次卡住是在哪，为什么</label>
+    <textarea id="stuck"></textarea>
+    <label for="unclear">哪条规则或哪张牌的说明看不懂</label>
+    <textarea id="unclear"></textarea>
+    <label for="bugs">遇到的问题 <small>怎么做会出现</small></label>
+    <textarea id="bugs"></textarea>
+    <label for="wish">最想加或者改的一样东西</label>
+    <textarea id="wish"></textarea>
+    <label>还会再打开玩吗</label>
+    <div class="pick" id="again" role="group" aria-label="还会再打开玩吗"></div>
+    <div class="send">
+      <button type="button" id="issue">提交到 GitHub</button>
+      <button type="button" id="copy">复制文字</button>
+      <span id="done" role="status"></span>
+    </div>
+    <p class="dim" style="margin-top:16px">"提交到 GitHub"会打开一个已经填好的反馈单，需要登录 GitHub 账号。没有账号就点"复制文字"，把内容发给邀请你试玩的人。</p>
+  </form>
+  <footer>源码和素材许可：<a href="https://github.com/cuiyucheng0104-afk/breach-the-gate">github.com/cuiyucheng0104-afk/breach-the-gate</a></footer>
+</main>
+<script>
+  const REPO = 'cuiyucheng0104-afk/breach-the-gate', $ = id => document.getElementById(id), state = { rating: '', again: '' };
+  const RATING = ['5 很好玩，想继续', '4 不错', '3 一般', '2 有点无聊', '1 玩不下去'], AGAIN = ['会', '不一定', '不会'];
+  function picks(id, list) { $(id).replaceChildren(...list.map(t => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.setAttribute('aria-pressed', 'false'); b.onclick = () => { state[id] = state[id] === t ? '' : t; for (const x of $(id).children) x.setAttribute('aria-pressed', String(x.textContent === state[id])); }; return b; })); }
+  picks('rating', RATING); picks('again', AGAIN);
+  // 设备：从浏览器自己报的信息里拼一句人话
+  const ua = navigator.userAgent, os = /iPhone|iPad/.test(ua) ? '苹果手机或平板' : /Android/.test(ua) ? '安卓' : /Mac OS X/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : '其他系统';
+  const br = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '其他浏览器';
+  $('device').value = `${os}，${br}，屏幕 ${screen.width}×${screen.height}`;
+  // 进度：游戏把闯关存档放在这台设备的浏览器里，这里只读出来填进输入框，不上传
+  try { const d = JSON.parse(localStorage.getItem('yibu-fanpan.campaign.v1')), NAME = { f1: '晨曦要塞', f2: '雾隐道场', f3: '千碑谷', f4: '蚀月深坑', f5: '蛮荒巢穴', f6: '永冻隘口', n: '无主之地' };
+    if (d) { const done = Object.keys(d.done || {}).map(k => NAME[k] || k), runs = { ...(d.runs || {}), ...(d.run ? { [d.run.area]: d.run } : {}) }, run = Object.entries(runs).map(([k, r]) => `${NAME[k] || k}打到第 ${r.at + 1} 关（卡组：${r.deck?.name || '？'}）`).join('、');
+      $('progress').value = [done.length ? `闯关已通关：${done.join('、')}` : '闯关还没通关任何场地', run, (d.owned || []).length ? `首领牌 ${d.owned.length} 张` : ''].filter(Boolean).join('；'); } } catch { /* 读不到就留空让人自己填 */ }
+  const val = id => $(id).value.trim();
+  const text = () => [['用什么设备玩的', val('device')], ['玩了多久，打到哪了', val('progress')], ['好玩程度', state.rating], ['第一次卡住是在哪，为什么', val('stuck')], ['哪条规则或哪张牌的说明看不懂', val('unclear')], ['遇到的问题', val('bugs')], ['最想加或者改的一样东西', val('wish')], ['还会再打开玩吗', state.again]]
+    .filter(([, v]) => v).map(([k, v]) => `【${k}】\n${v}`).join('\n\n') + `\n\n（试玩版 2026-11-20 f2f544c）`;
+  $('issue').onclick = () => { const q = new URLSearchParams({ template: 'playtest.yml', title: '试玩反馈：' + (state.rating ? state.rating.slice(2) : '') });
+    for (const id of ['device', 'progress', 'stuck', 'unclear', 'bugs', 'wish']) if (val(id)) q.set(id, val(id)); if (state.rating) q.set('rating', state.rating); if (state.again) q.set('again', state.again);
+    window.open(`https://github.com/${REPO}/issues/new?${q}`, '_blank', 'noopener'); $('done').textContent = '已经打开填好的反馈单，在那一页点提交就行。'; };
+  $('copy').onclick = async () => { try { await navigator.clipboard.writeText(text()); $('done').textContent = '已复制，可以粘贴发出去了。'; } catch { const t = document.createElement('textarea'); t.value = text(); document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); $('done').textContent = '已复制。'; } };
+</script>
+</body>
+</html>

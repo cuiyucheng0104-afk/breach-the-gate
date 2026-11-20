@@ -1,0 +1,223 @@
+{
+ "music": {
+  "home": {
+   "file": "music/home.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "battle_1": {
+   "file": "music/battle_1.mp3",
+   "loop": true,
+   "gain": 0.7
+  },
+  "battle_2": {
+   "file": "music/battle_2.mp3",
+   "loop": true,
+   "gain": 0.7
+  },
+  "battle_3": {
+   "file": "music/battle_3.mp3",
+   "loop": true,
+   "gain": 0.7
+  },
+  "boss_f1": {
+   "file": "music/boss_f1.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_f2": {
+   "file": "music/boss_f2.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_f3": {
+   "file": "music/boss_f3.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_f4": {
+   "file": "music/boss_f4.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_f5": {
+   "file": "music/boss_f5.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_f6": {
+   "file": "music/boss_f6.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_n1": {
+   "file": "music/boss_n1.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_n2": {
+   "file": "music/boss_n2.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_n3": {
+   "file": "music/boss_n3.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_n4": {
+   "file": "music/boss_n4.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "boss_final": {
+   "file": "music/boss_final.mp3",
+   "loop": true,
+   "gain": 0.8
+  },
+  "win": {
+   "file": "music/win.mp3",
+   "loop": false,
+   "gain": 0.8
+  },
+  "lose": {
+   "file": "music/lose.mp3",
+   "loop": false,
+   "gain": 0.8
+  }
+ },
+ "sfx": {
+  "card_pick": {
+   "file": "sfx/card_pick.mp3",
+   "gain": 0.6
+  },
+  "card_play": {
+   "file": "sfx/card_play.mp3",
+   "gain": 0.6
+  },
+  "card_deny": {
+   "file": "sfx/card_deny.mp3",
+   "gain": 0.6
+  },
+  "card_draw": {
+   "file": "sfx/card_draw.mp3",
+   "gain": 0.6
+  },
+  "card_swap": {
+   "file": "sfx/card_swap.mp3",
+   "gain": 0.6
+  },
+  "unit_land": {
+   "file": "sfx/unit_land.mp3",
+   "gain": 0.6
+  },
+  "step": {
+   "file": "sfx/step.mp3",
+   "gain": 0.6
+  },
+  "hit_light": {
+   "file": "sfx/hit_light.mp3",
+   "gain": 0.6
+  },
+  "hit_heavy": {
+   "file": "sfx/hit_heavy.mp3",
+   "gain": 0.6
+  },
+  "unit_die": {
+   "file": "sfx/unit_die.mp3",
+   "gain": 0.6
+  },
+  "base_hit": {
+   "file": "sfx/base_hit.mp3",
+   "gain": 0.6
+  },
+  "base_break": {
+   "file": "sfx/base_break.mp3",
+   "gain": 0.6
+  },
+  "spell_cast": {
+   "file": "sfx/spell_cast.mp3",
+   "gain": 0.6
+  },
+  "fire": {
+   "file": "sfx/fire.mp3",
+   "gain": 0.9
+  },
+  "ice": {
+   "file": "sfx/ice.mp3",
+   "gain": 0.9
+  },
+  "holy": {
+   "file": "sfx/holy.mp3",
+   "gain": 0.6
+  },
+  "shadow": {
+   "file": "sfx/shadow.mp3",
+   "gain": 0.6
+  },
+  "wind": {
+   "file": "sfx/wind.mp3",
+   "gain": 0.9
+  },
+  "poison": {
+   "file": "sfx/poison.mp3",
+   "gain": 0.6
+  },
+  "heal": {
+   "file": "sfx/heal.mp3",
+   "gain": 0.6
+  },
+  "buff": {
+   "file": "sfx/buff.mp3",
+   "gain": 0.6
+  },
+  "shield_up": {
+   "file": "sfx/shield_up.mp3",
+   "gain": 0.6
+  },
+  "shield_break": {
+   "file": "sfx/shield_break.mp3",
+   "gain": 0.6
+  },
+  "freeze": {
+   "file": "sfx/freeze.mp3",
+   "gain": 0.9
+  },
+  "summon": {
+   "file": "sfx/summon.mp3",
+   "gain": 0.6
+  },
+  "mana_gain": {
+   "file": "sfx/mana_gain.mp3",
+   "gain": 0.6
+  },
+  "turn_mine": {
+   "file": "sfx/turn_mine.mp3",
+   "gain": 0.6
+  },
+  "turn_foe": {
+   "file": "sfx/turn_foe.mp3",
+   "gain": 0.6
+  },
+  "ui_click": {
+   "file": "sfx/ui_click.mp3",
+   "gain": 0.6
+  },
+  "ui_hover": {
+   "file": "sfx/ui_hover.mp3",
+   "gain": 0.6
+  },
+  "gate": {
+   "file": "sfx/gate.mp3",
+   "gain": 0.6
+  },
+  "boss_enter": {
+   "file": "sfx/boss_enter.mp3",
+   "gain": 0.9
+  },
+  "boss_rage": {
+   "file": "sfx/boss_rage.mp3",
+   "gain": 0.6
+  }
+ }
+}

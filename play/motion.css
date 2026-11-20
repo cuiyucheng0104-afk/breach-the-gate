@@ -1,0 +1,135 @@
+/* 动效：对局里一切“过程”和操作反馈。静态长相在 style.css；这里只管位移、过渡、状态和由脚本创建的演出节点
+   （回合旗带 #flag、对方亮牌位 #reveal、牌库堆 #pile、拒绝原因 #why、受击描边 #edge、城门过场 #gate）。
+   原则：先回应后演出；小件走格（steps），大位移走滑；给人读的停留不能省；入场有戏，退场干脆。不用回弹和弹性。 */
+
+/* 全局节奏表：只许用这几档。board3d.js 里的 TIME 和它一一对应 */
+/* 时长和缓动的变量定义在 style.css 的 :root 里，这里只引用 */
+
+@keyframes m-fade { from { opacity:0; } }
+@keyframes m-stamp { from { scale:1.8; opacity:0; } }                 /* 盖章：分三格砸到位 */
+@keyframes m-blink { to { opacity:.35; } }
+@keyframes m-tick { from { scale:1.4; } }
+@keyframes m-shake { 0%,100% { translate:0 0; } 20% { translate:-6px 0; } 40% { translate:6px 0; } 60% { translate:-4px 0; } 80% { translate:4px 0; } }
+
+/* ---------- 手牌：位移和状态都在这里（卡面长相归 style.css） ---------- */
+/* 静止时不排成死直线：每张带一点手调的倾角和高低，像捏在手里；悬停或选中的那张回正 */
+#hand .kcard { --lift:0px; position:relative; z-index:1; filter:none; opacity:1; transform-origin:50% 100%;
+  transform:translateY(var(--lift)); /* 只做整像素的上下位移：旋转和小数倍放大会把像素立绘和像素数字弄糊 */ transition:transform var(--t-2) var(--e-out), filter var(--t-2) var(--e-out); }
+#hand .kcard:nth-child(1) { --lift:4px; } #hand .kcard:nth-child(3) { --lift:2px; } #hand .kcard:nth-child(4) { --lift:6px; }   /* 手里的牌高低不齐，像是随手码的 */
+/* 悬停：能打的牌上浮并放大一点；打不了的只抬 4px，告诉你“看得到，但现在不行” */
+@media (hover:hover) { #hand .kcard:hover { --lift:-4px; z-index:3; transition-duration:var(--t-1); }
+  #hand .kcard.ok:hover { --lift:-20px; } }   /* 只给有鼠标的设备：手指点完“悬停”会粘在那张牌上 */
+/* 选中：比悬停更高，其余几张退后变暗——一眼看出“现在要打的是这张” */
+#hand .kcard.sel, #hand .kcard.sel:hover { --lift:-32px; z-index:4; }
+#hand.is-picking .kcard:not(.sel) { filter:brightness(.72); } #hand.is-picking .kcard:not(.sel):not(:hover) { --lift:6px; }
+@media (hover:none) { #hand.is-picking .kcard:not(.sel) { --lift:6px; } }
+/* 三种“不可用”长得不一样：能量不够（压暗）；没有目标（去色）；不是我的回合或正在演出（整手一起下沉） */
+#hand .kcard.is-short { filter:brightness(.78); }
+#hand .kcard.is-notarget { filter:saturate(.25) brightness(.95); }
+#hand.is-waiting .kcard, #hand.is-waiting .kcard:hover { filter:brightness(.66) saturate(.8); cursor:default; }   /* 等待时只压暗不下沉：这正是玩家读自己手牌的时候 */
+#hand .kcard[aria-disabled="true"] { cursor:default; }
+#hand .kcard.deny { animation:m-shake var(--t-2) steps(1); }          /* 点了打不出的牌：短促地左右一抖 */
+#hand .kcard:focus-visible { outline:2px solid var(--mana-hi, #a8fff8); outline-offset:4px; }
+/* 离手的牌换成固定定位的替身去飞，不受手牌状态影响 */
+.kcard.ghost, #hand .kcard.ghost { position:fixed; z-index:50; margin:0; pointer-events:none; transition:none; transform:none; transform-origin:50% 50%; filter:none; opacity:1; animation:none; }
+
+/* 拒绝的原因写在牌的正上方，不弹窗 */
+#why { position:fixed; z-index:55; translate:-50% calc(-100% - 32px); padding:4px 8px; background:var(--night-0, #0c1020); color:var(--paper, #ece4d0);
+  border:2px solid var(--hurt, #c82038); font-size:14px; line-height:1.4; white-space:nowrap; pointer-events:none; opacity:0; }
+#why.on { opacity:1; animation:m-fade var(--t-1) var(--e-out); }
+
+/* ---------- 能量：十二颗水晶常驻，只换状态 ---------- */
+#mana .gems i.none { display:none; }
+#mana .gems i.off { opacity:.28; filter:grayscale(1); }
+#mana .gems i.lack { opacity:1; filter:none; background:var(--hurt, #c82038); animation:m-blink var(--t-1) steps(2, jump-none) 4 alternate; } /* 缺的那几点：标成绯红，闪两下 */
+#mana .gems i.cost { animation:m-blink var(--t-3) steps(2, jump-none) infinite alternate; }      /* 选中的牌将要花掉的那几点：慢闪 */
+@keyframes m-gem-pop { 0% { scale:1; opacity:1; filter:none; } 50% { scale:1.4; opacity:1; filter:none; } 100% { scale:.3; } }
+@keyframes m-gem-gain { from { scale:.3; } }
+#mana .gems i.pop { animation:m-gem-pop var(--t-2) steps(4) backwards; }              /* 花掉：从右到左一颗颗碎 */
+#mana .gems i.gain { animation:m-gem-gain var(--t-2) steps(3) backwards; }           /* 回满：从左到右一颗颗亮 */
+#mana .num { display:inline-block; } #mana .num.tick { animation:m-tick var(--t-2) steps(3, jump-none); }   /* 数字变了：顶一下再落回，分三格。不动透明度——扣能量必须立刻看得见 */
+#mana .max { color:var(--dim, #8e98b8); }
+
+/* 没有牌可出了：结束回合按钮的描边一收一放，催你 */
+@keyframes m-nudge { to { outline-offset:6px; } }
+#end.is-done, #swap.is-want { outline:2px solid var(--go, #f8e040); outline-offset:2px; animation:m-nudge var(--t-4) steps(2, jump-none) infinite alternate; }   /* 教学里该按“换牌”时，它和结束回合一样催你 */
+/* 通关：新到手的徽章从大到小分几格砸进槽里，落定时往下顿一下；王冠最后落下；彩色碎片分格往下撒。减少动态效果时直接到位、不撒碎片 */
+@keyframes m-badge { 0% { scale:3; opacity:0; } 60% { scale:1; opacity:1; translate:0 0; } 80% { scale:1; opacity:1; translate:0 3px; } 100% { scale:1; opacity:1; translate:0 0; } }
+.clearfx .new { animation:m-badge var(--t-4) steps(6, jump-none) both; animation-delay:calc(var(--t-read) + var(--i, 0) * 140ms); }
+.clearfx .crown { animation:m-badge var(--t-4) steps(6, jump-none) both; animation-delay:calc(var(--t-read) + 6 * 140ms + var(--t-2)); }
+@keyframes m-fall { 0% { translate:0 0; opacity:1; } 100% { translate:var(--dx, 0) 150px; opacity:0; } }
+.clearfx .bit { animation:m-fall 1.4s steps(10, jump-none) both; animation-delay:calc(var(--t-read) + var(--t-3) + var(--d, 0ms)); }
+.calm .clearfx .new, .calm .clearfx .crown, .calm .clearfx .bit { animation:none; }
+@keyframes m-point { to { translate:0 6px; } }
+.kcard.here::before { animation:m-point var(--t-4) steps(2, jump-none) infinite alternate; }   /* 教学：该点的牌头上的箭头一上一下走格 */
+
+/* ---------- 回合旗带：挂在轮到的那一方的城堡上（血量牌下面，位置由脚本按城堡在画面里的位置定），从那一侧展开，不挡战场中心 ---------- */
+#flag { position:absolute; top:72px; z-index:3; height:48px; display:flex; align-items:center; gap:16px; padding:0 24px; pointer-events:none; opacity:0; white-space:nowrap;
+  background:var(--night-0, #0c1020); color:var(--paper, #ece4d0); border-top:2px solid var(--night-4, #4a5c88); border-bottom:4px solid var(--ink, #080818);
+  transition:transform var(--t-2) var(--e-in), opacity var(--t-2) var(--e-in); }
+#flag b { font-size:24px; letter-spacing:.1em; } #flag span { font-size:14px; color:var(--dim, #8e98b8); } #flag i { font-style:normal; font-size:14px; color:var(--dim, #8e98b8); margin:0 8px; }
+#flag .m { display:inline-flex; align-items:center; gap:8px; color:var(--mana-hi, #a8fff8); } #flag .m .px { --s:3; }
+#flag.mine { left:0; padding-right:48px; transform:translateX(-100%); border-top-color:var(--boon, #68f0b0); clip-path:polygon(0 0, 100% 0, calc(100% - 16px) 50%, 100% 100%, 0 100%); }
+#flag.foe { right:0; padding-left:48px; transform:translateX(100%); border-top-color:var(--hurt, #c82038); clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%, 16px 50%); }
+#flag.vs { left:0; right:0; justify-content:center; transform:translateY(-200%); }
+#flag.on { transform:none; opacity:1; transition:transform var(--t-3) var(--e-out), opacity var(--t-1) linear; }
+
+/* ---------- 对方亮牌位：贴在对方城堡上、血量牌下面（位置由脚本定，不能挡住血量）。亮过的牌缩小留着，直到下一张 ---------- */
+#reveal { position:absolute; top:216px; right:max(16px, var(--sr, 0px)); z-index:4; display:none; flex-direction:column; align-items:flex-end; gap:4px; pointer-events:none; transform-origin:100% 0; transition:scale var(--t-2) var(--e-out), opacity var(--t-2); }
+#reveal.on, #reveal.past { display:flex; } #reveal.on { scale:.9; animation:m-reveal var(--t-3) var(--e-out); }
+#reveal.past { display:none; }   /* 亮过的牌不留在场上：缩小后的字读不了，要回看去战报 */
+#reveal small { padding:0 8px; font-size:12px; line-height:20px; background:var(--hurt, #c82038); color:var(--paper, #ece4d0); }
+@keyframes m-reveal { from { translate:120% 0; } }
+
+/* ---------- 牌库堆：背面朝上，只写还剩几张（补牌和换牌从里面随机来一张）。换牌、补牌的动画都从这里出发 ---------- */
+#pile { position:absolute; right:max(16px, var(--sr, 0px)); bottom:16px; z-index:2; width:96px; padding:4px 4px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center;
+  background:var(--fd, #1a2030); border:2px solid var(--ink, #080818); box-shadow:4px 4px 0 var(--ink, #080818), 8px 8px 0 var(--night-2, #1c2844); }
+#pile small { font-size:12px; line-height:1; color:var(--dim, #8e98b8); } #pile b { font-size:12px; line-height:1.3; max-width:100%; }
+#pile .back { width:40px; height:48px; background:linear-gradient(var(--night-4, #4a5c88) 0 0) center / 12px 12px no-repeat, var(--night-2, #1c2844); box-shadow:inset 0 0 0 2px var(--night-4, #4a5c88); }   /* 牌库背面朝上：抽到什么是随机的，不预告 */ #pile .c { position:absolute; top:-12px; left:-12px; width:28px; height:32px; background:var(--ink, #080818); clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+#pile .c i { position:absolute; inset:2px; display:grid; place-items:center; background:var(--mana, #00b8c8); clip-path:inherit; color:var(--ink, #080818); line-height:0; }   /* 费用和卡面上一样套六边水晶 */
+#pile:empty { display:none; }
+
+/* 我方城堡挨打：舞台四边一圈绯红硬边，三格退掉 */
+#edge { position:absolute; inset:0; z-index:2; pointer-events:none; opacity:0; box-shadow:inset 0 0 0 8px var(--hurt, #c82038); }
+@keyframes m-edge { from { opacity:1; } }
+#edge.on { animation:m-edge var(--t-3) steps(3); }
+
+/* ---------- 城门过场：进对局、回开始界面都走它，不再一帧硬切 ---------- */
+#gate { position:fixed; inset:0; z-index:60; pointer-events:none; display:grid; place-items:center; }
+#gate i { position:absolute; top:0; bottom:0; width:50%; transition:transform var(--t-4) var(--e-out);
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='48' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h96v2H0zM0 24h96v2H0zM0 0h2v24H0zM48 24h2v24h-2z' fill='%230c1020'/%3E%3C/svg%3E") 0 0/96px 48px, var(--night-1, #141c30); }   /* 错缝砌的砖墙 */
+#gate i.l { left:0; transform:translateX(-100%); border-right:4px solid var(--ink, #080818); } #gate i.r { right:0; transform:translateX(100%); border-left:4px solid var(--ink, #080818); }
+#gate b { position:relative; display:grid; justify-items:center; gap:8px; padding:8px 24px; font-size:24px; letter-spacing:.2em; color:var(--paper, #ece4d0); background:var(--ink, #080818); opacity:0; transition:opacity var(--t-1); }
+#gate.shut { pointer-events:auto; } #gate.shut i { transform:none; transition:transform var(--t-3) steps(8); } #gate.shut b { opacity:1; transition-delay:var(--t-3); }
+
+#gate .bricks:not(:has(.on)) { visibility:hidden; }   /* 进对局要载入角色图：城门上一排砖走进度；不用载入时（回开始界面）不露出来 */
+
+/* ---------- 载入界面、横屏提示、放大的牌 ---------- */
+#boot.done { opacity:0; pointer-events:none; transition:opacity var(--t-2) var(--e-in); }                 /* 载入完：退场干脆 */
+@keyframes m-turn { 0%, 40% { rotate:0deg; } 50% { rotate:45deg; } 60%, 100% { rotate:90deg; } }
+#rotate i { animation:m-turn 1.6s steps(1) infinite; }                                                    /* 手机图标分三格转成横的 */
+#zoom.on { animation:m-fade var(--t-1) var(--e-out); }
+
+/* ---------- 手机横屏：手牌是小版式，抬起的幅度也跟着小（和 #stage3d 的 --hand-zone 对应：探出 52 + 抬 8 + 余量 8） ---------- */
+@media (max-height:540px) {
+  #hand .kcard.sel, #hand .kcard.sel:hover, #hand .kcard.ok:hover { --lift:-8px; }
+  #pile { right:max(8px, var(--sr, 0px)); bottom:8px; width:64px; padding:4px; gap:2px; } #pile .back { width:24px; height:28px; background-size:8px 8px; } #pile small { display:none; }   /* 牌库：缩成舞台右下角一小块，只留张数 */
+  #reveal { right:max(8px, var(--sr, 0px)); } #reveal.on { scale:1; }                                     /* 对方亮的牌换成中号（脚本加 .md），不再缩放 */
+  #flag { height:40px; } #flag b { font-size:16px; }
+}
+
+/* ---------- 结算：底色淡入 → 胜负盖章 → 统计 → 按钮最后出现（脚本同时把它们禁用到这一刻，防误触） ---------- */
+#result.in { animation:m-fade var(--t-3) var(--e-out) both; }
+#result.in #verdict { animation:m-stamp var(--t-2) steps(3) var(--t-3) both; }
+#result.in #summary { animation:m-fade var(--t-3) var(--e-out) var(--t-4) both; }
+#result.in button { animation:m-fade var(--t-2) var(--e-out) calc(var(--t-read) + var(--t-2)) both; }
+
+/* ---------- 减少动态效果（board3d.js 按系统设置给 <html> 加 .calm）：位移改短淡入淡出，抖动、呼吸、闪烁去掉；阅读停留由脚本保留 ---------- */
+.calm #hand .kcard { transition:filter 120ms, opacity 120ms; }
+.calm #hand .kcard.deny, .calm #mana .gems i, .calm #mana .num.tick, .calm #end.is-done, .calm #swap.is-want, .calm .kcard.here::before, .calm #edge.on, .calm #reveal.on { animation:none; }
+.calm #mana .gems i.cost { opacity:.5; }
+.calm #flag, .calm #flag.on { transform:none; transition:opacity 120ms; }
+.calm #gate i { transform:none; opacity:0; transition:opacity 120ms; } .calm #gate.shut i { opacity:1; transition:opacity 120ms; }
+.calm #reveal { transition:opacity 120ms; }
+.calm #result.in #verdict { animation-name:m-fade; }
+.calm #rotate i { animation:none; rotate:90deg; } .calm #zoom.on { animation:none; } .calm #boot.done { transition:opacity 120ms; }
